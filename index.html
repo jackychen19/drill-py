@@ -60,10 +60,36 @@ pre { margin: 0; }
   gap: 16px;
   padding: 28px 0;
 }
-.brand { display: flex; align-items: baseline; gap: 14px; white-space: nowrap; }
+.brand { display: flex; align-items: center; gap: 14px; white-space: nowrap; min-width: 0; }
 .logo { font: 700 22px/1 var(--mono); letter-spacing: -0.01em; color: var(--text); text-decoration: none; }
 .logo span { color: var(--primary); }
-.brand .lang { color: var(--muted); font-size: 16px; font-weight: 500; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.deckpick { position: relative; display: inline-flex; align-items: center; min-width: 0; margin-left: -10px; }
+.deckpick select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 44px;
+  max-width: 220px;
+  padding: 0 30px 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-btn);
+  background: transparent;
+  color: var(--muted);
+  font: 500 16px/1 var(--sans);
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.deckpick select:hover, .deckpick select:focus-visible { border-color: var(--border); color: var(--text); }
+.deckpick select:disabled { cursor: default; opacity: .6; border-color: transparent; }
+.deckpick::after {
+  content: "";
+  position: absolute; right: 13px; top: 50%;
+  width: 6px; height: 6px; margin-top: -5px;
+  border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.deckpick option { background: var(--panel); color: var(--text); }
 .chips { display: flex; gap: 8px; }
 .chip {
   min-height: 44px;
@@ -321,7 +347,7 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .deck { list-style: none; margin: 0; padding: 0; }
 .deck-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px 20px;
   padding: 16px 24px;
@@ -337,8 +363,38 @@ textarea.input { resize: vertical; line-height: 1.5; }
 .deck-actions { display: flex; gap: 8px; }
 .btn.sm { min-height: 44px; padding: 0 16px; font-size: 14px; font-weight: 600; }
 a.btn { text-decoration: none; }
+.pick { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -10px -6px -10px -14px; cursor: pointer; }
+.pick input { width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer; margin: 0; }
+.deck-row.sel { background: rgba(122, 162, 255, .06); }
+.tool-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 14px; color: var(--muted); }
+.selbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border-soft);
+  background: rgba(122, 162, 255, .08);
+  font-size: 15px;
+}
+.selbar strong { font-weight: 700; }
+.selbar select.input { width: auto; min-width: 160px; padding-right: 14px; }
+.decklist { list-style: none; margin: 14px 0 0; padding: 0; }
+.decklist button {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  width: 100%; min-height: 44px; padding: 0 12px; margin-left: -12px; box-sizing: content-box;
+  background: none; border: 0; border-radius: 8px; cursor: pointer; text-align: left;
+  font-size: 15px; font-weight: 600; color: var(--muted);
+}
+.decklist button:hover { color: var(--text); background: rgba(255, 255, 255, .03); }
+.decklist button[aria-current="true"] { color: var(--text); background: rgba(122, 162, 255, .12); }
+.decklist .n { font: 13px/1 var(--mono); color: var(--dim); font-weight: 400; }
+.deck-admin { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.side .deck-admin .btn { margin-top: 0; width: auto; flex: 1 1 auto; }
+.opt { text-transform: none; letter-spacing: 0; color: var(--dim); margin-left: 6px; }
+.src { color: var(--box2); }
 .deck-empty { padding: 28px 24px; color: var(--muted); border-top: 1px solid var(--border-soft); margin: 0; }
 .flash { padding: 14px 20px; border-radius: var(--r-panel); background: #142A1E; border: 1px solid rgba(134, 239, 172, .3); font-size: 15px; }
+.flash.warn { background: #2C2412; border-color: rgba(244, 183, 64, .4); margin-bottom: 20px; }
+.flash.warn strong { color: var(--box0); }
+.flash code { font-size: 14px; }
 .flash strong { font: 700 14px/1 var(--mono); color: var(--pass); margin-right: 10px; letter-spacing: .04em; }
 
 /* ---- card form ---- */
@@ -353,6 +409,23 @@ a.btn { text-decoration: none; }
 .preview .given { margin-top: 14px; padding: 10px 12px 12px; }
 .preview .given pre { font-size: 12.5px; line-height: 19px; margin-top: 8px; }
 .preview .empty { color: var(--dim); font-style: italic; font-weight: 500; }
+
+/* ---- in-page dialog ---- */
+dialog.modal {
+  width: min(460px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
+}
+dialog.modal::backdrop { background: rgba(5, 7, 10, .65); }
+.modal form { display: flex; flex-direction: column; gap: 14px; padding: 22px 24px 20px; }
+.modal h2 { margin: 0; font: 800 20px/1.3 var(--sans); letter-spacing: -0.01em; }
+.modal p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.modal .m-error { color: var(--fail); font-size: 14px; }
+.modal .actions { justify-content: flex-end; margin-top: 6px; }
 
 /* ---- responsive ---- */
 @media (max-width: 980px) {
@@ -375,7 +448,9 @@ a.btn { text-decoration: none; }
   .actions .btn { flex: 1 1 auto; }
   .bars { padding: 20px; }
   .navlinks { gap: 16px; }
-  .deck-row { grid-template-columns: minmax(0, 1fr) auto; padding: 16px 20px; }
+  .deck-row { grid-template-columns: auto minmax(0, 1fr) auto; padding: 16px 20px; }
+  .selbar { padding: 12px 20px; }
+  .deckpick select { max-width: 150px; }
   .deck-actions { grid-column: 1 / -1; }
   .deck-actions .btn { flex: 1; }
   .field-row { grid-template-columns: 1fr; }
@@ -387,10 +462,11 @@ a.btn { text-decoration: none; }
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="brand"><a class="logo" href="#">drill<span>_</span></a><span class="lang">Python</span></div>
+    <div class="brand"><a class="logo" href="#">drill<span>_</span></a><label class="deckpick" title="Switch deck"><span class="sr-only">Deck</span><select id="deck-select"></select></label></div>
     <nav class="chips" id="chips" aria-label="Category filter"></nav>
     <nav class="navlinks" id="navlinks" aria-label="Pages"></nav>
   </header>
+  <div class="flash warn" id="stale" role="alert" hidden><strong>RESTART THE SERVER</strong>The page was updated but your server is still running the old <code>server.py</code>. In its terminal press Ctrl+C, run <code>python3 server.py</code>, then reload this page.</div>
 
   <!-- Card view -->
   <main class="layout" id="view-card">
@@ -400,6 +476,7 @@ a.btn { text-decoration: none; }
           <div class="meta">
             <span class="tag" id="c-cat"></span>
             <span id="c-num"></span><span class="sep">·</span><span id="c-box"></span>
+            <span id="c-src" hidden></span>
             <span id="c-sess" hidden></span>
           </div>
           <h1 class="prompt" id="c-prompt"></h1>
@@ -472,7 +549,7 @@ a.btn { text-decoration: none; }
       </section>
       <section class="panel side">
         <h2 class="eyebrow">Your data</h2>
-        <p>Cards live in <code>cards.json</code>. Progress saves to a local file. Add a card after any interview by editing the JSON.</p>
+        <p>This deck lives in <code id="deck-file">decks/starter.json</code>. Progress saves to a local file, per deck. Add a card after any interview from the Deck page.</p>
         <button class="btn danger" id="reset">Reset progress</button>
       </section>
     </aside>
@@ -482,7 +559,7 @@ a.btn { text-decoration: none; }
   <main class="layout wide-rail" id="view-deck" hidden>
     <div class="col">
       <div class="prog-head">
-        <h1>Deck</h1>
+        <h1 id="deck-title">Deck</h1>
         <a class="btn primary" href="#deck/new">New card</a>
       </div>
       <div class="flash" id="deck-flash" hidden></div>
@@ -490,18 +567,26 @@ a.btn { text-decoration: none; }
         <div class="deck-tools">
           <input class="input" id="deck-q" type="search" placeholder="Search prompts, ids and setup code" aria-label="Search cards" autocomplete="off" spellcheck="false">
           <div class="chips" id="deck-chips" aria-label="Category filter"></div>
+          <div class="tool-row"><button class="linkbtn" id="deck-selall">Select all shown</button><span>Select cards to copy them into another deck.</span></div>
         </div>
+        <div class="selbar" id="deck-selbar" hidden></div>
         <ul class="deck" id="deck-list"></ul>
       </section>
     </div>
     <aside class="rail">
       <section class="panel side">
-        <h2 class="eyebrow">Your deck</h2>
+        <h2 class="eyebrow">Decks</h2>
+        <ul class="decklist" id="deck-decks"></ul>
+        <div class="deck-admin">
+          <button class="btn sm" id="deck-new">New deck</button>
+          <button class="btn sm quiet" id="deck-rename">Rename</button>
+          <button class="btn sm danger" id="deck-delete">Delete</button>
+        </div>
         <p id="deck-summary"></p>
       </section>
       <section class="panel side">
         <h2 class="eyebrow">Editing cards</h2>
-        <p class="lines">Edits save straight to <code>cards.json</code>.<br>The solution runs on save; what it prints becomes the expected output.<br>Renaming a card's id keeps its progress.</p>
+        <p class="lines">Edits save straight to this deck's file in <code>decks/</code>.<br>The solution runs on save; what it prints becomes the expected output.<br>Renaming a card's id keeps its progress.</p>
       </section>
     </aside>
   </main>
@@ -527,6 +612,11 @@ a.btn { text-decoration: none; }
             <input class="input mono" id="f-id" autocomplete="off" spellcheck="false" placeholder="dict-pop-default">
           </label>
         </div>
+        <label class="field">
+          <span class="label">Source<span class="opt">optional</span></span>
+          <input class="input" id="f-source" autocomplete="off" placeholder="LC 49 · Group Anagrams">
+          <span class="hint">Where this came from, like the LeetCode problem. Shown on the card.</span>
+        </label>
       </section>
 
       <section class="editor">
@@ -557,7 +647,7 @@ a.btn { text-decoration: none; }
     <aside class="rail">
       <section class="panel side preview">
         <h2 class="eyebrow">Preview</h2>
-        <div class="meta"><span class="tag" id="p-cat"></span><span id="p-id"></span></div>
+        <div class="meta"><span class="tag" id="p-cat"></span><span id="p-id"></span><span class="src" id="p-src"></span></div>
         <p class="prompt" id="p-prompt"></p>
         <div class="given" id="p-given"><div class="label">Given</div><pre id="p-setup"></pre></div>
       </section>
@@ -568,6 +658,19 @@ a.btn { text-decoration: none; }
     </aside>
   </main>
 </div>
+
+<dialog class="modal" id="modal" aria-labelledby="m-title">
+  <form id="m-form" novalidate>
+    <h2 id="m-title"></h2>
+    <p id="m-text"></p>
+    <input class="input" id="m-input" autocomplete="off" spellcheck="false">
+    <p class="m-error" id="m-error" role="alert"></p>
+    <div class="actions">
+      <button type="button" class="btn quiet" id="m-cancel">Cancel</button>
+      <button type="submit" class="btn primary" id="m-ok">OK</button>
+    </div>
+  </form>
+</dialog>
 
 <script>
 "use strict";
@@ -594,7 +697,10 @@ const S = {
   session: null,     // {kind:"weakest", ids, i, stats} | {kind:"retired"}
   done: null,        // stats from a finished weakest-10 session
   busy: false,
-  deck: { q: "", cat: "all" },
+  deckName: null,    // active deck; the server remembers it between visits
+  decks: [],         // [{name, count}]
+  stale: false,      // server.py is older than this page
+  deck: { q: "", cat: "all", sel: new Set() },
   flash: null,      // message shown once on the deck page
   form: null,       // card form state while on #deck/new or #deck/edit/<id>
 };
@@ -606,8 +712,61 @@ const boxOf = (id) => (S.progress[id] ? S.progress[id].box : 0);
 const missesOf = (id) => (S.progress[id] ? S.progress[id].misses : 0);
 const byId = (id) => S.cards.find((c) => c.id === id) || null;
 const randomOf = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const categories = () => [...CATS, ...new Set(S.cards.map((c) => c.cat).filter((c) => !CATS.includes(c)))];
+// Categories this deck uses: the usual five first, then any others in deck order.
+function categories() {
+  const used = [...new Set(S.cards.map((c) => c.cat))];
+  return [...CATS.filter((c) => used.includes(c)), ...used.filter((c) => !CATS.includes(c))];
+}
 const setBox = (id, box) => { S.progress[id] = { misses: missesOf(id), ...S.progress[id], box }; };
+
+// In-page replacement for prompt()/confirm()/alert(). Browsers can block those
+// silently (VS Code's Simple Browser always does; Chrome does after "prevent
+// this page from creating additional dialogs"), which made buttons look dead.
+// Resolves with true (confirm), the typed text (input), or null if cancelled.
+// validate(value) may return an error string, shown in the dialog to retry.
+function ask({ title, text = "", input = null, ok = "OK", cancel = "Cancel", danger = false, validate = null }) {
+  const dlg = $("#modal"), form = $("#m-form"), field = $("#m-input"), err = $("#m-error");
+  const okBtn = $("#m-ok"), cancelBtn = $("#m-cancel");
+  $("#m-title").textContent = title;
+  $("#m-text").textContent = text;
+  $("#m-text").hidden = !text;
+  field.hidden = input === null;
+  field.value = input === null ? "" : input;
+  err.textContent = "";
+  err.hidden = true;
+  okBtn.textContent = ok;
+  okBtn.className = `btn ${danger ? "danger" : "primary"}`;
+  okBtn.disabled = false;
+  cancelBtn.textContent = cancel || "";
+  cancelBtn.hidden = !cancel;
+  return new Promise((resolve) => {
+    const finish = (value) => {
+      form.onsubmit = cancelBtn.onclick = dlg.oncancel = null;
+      if (dlg.open) dlg.close();
+      resolve(value);
+    };
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const value = input === null ? true : field.value;
+      if (validate) {
+        okBtn.disabled = true;
+        const problem = await validate(value);
+        okBtn.disabled = false;
+        if (problem) {
+          err.textContent = problem;
+          err.hidden = false;
+          return (input === null ? okBtn : field).focus();
+        }
+      }
+      finish(value);
+    };
+    cancelBtn.onclick = () => finish(null);
+    dlg.oncancel = (e) => { e.preventDefault(); finish(null); }; // Esc
+    dlg.showModal();
+    if (input !== null) { field.focus(); field.select(); } else okBtn.focus();
+  });
+}
+const notify = (message, title = "That didn't work") => ask({ title, text: message, cancel: null });
 
 async function api(path, body) {
   const opts = body === undefined ? {} : {
@@ -627,9 +786,15 @@ async function api(path, body) {
 }
 
 async function refresh() {
-  const d = await api("/api/state");
+  const d = await api(`/api/state?deck=${encodeURIComponent(S.deckName || "")}`);
+  // The page is re-read from disk on every load, but server.py only on start,
+  // so after an update the two can disagree until the server is restarted.
+  S.stale = !Array.isArray(d.decks);
+  S.deckName = d.deck || null;
+  S.decks = d.decks || [];
   S.cards = d.cards;
   S.progress = d.progress;
+  for (const id of S.deck.sel) if (!byId(id)) S.deck.sel.delete(id);
   if (S.current) S.current = byId(S.current.id) || S.current; // keep the fresh copy
 }
 
@@ -712,7 +877,7 @@ async function run() {
   $("#run-label").textContent = "Running…";
   $("#run").disabled = true;
   try {
-    const r = await api("/run", { cardId: card.id, code, firstTry });
+    const r = await api("/run", { deck: S.deckName, cardId: card.id, code, firstTry });
     if (S.current !== card) return;
     S.attempt++;
     S.result = { ...r, firstTry, revealed: S.revealed };
@@ -739,7 +904,7 @@ async function reveal() {
   const card = S.current;
   const reset = !S.passed; // after a pass the card is already scored, so peeking is free
   try {
-    const r = await api("/api/reveal", { cardId: card.id, reset });
+    const r = await api("/api/reveal", { deck: S.deckName, cardId: card.id, reset });
     if (S.current !== card) return;
     S.solution = { ...r, reset };
     if (reset) {
@@ -786,12 +951,17 @@ function startRetired() {
 }
 
 async function resetProgress() {
-  if (!confirm("Reset all progress? Every card goes back to box 0. This can't be undone.")) return;
+  const yes = await ask({
+    title: `Reset progress for "${S.deckName}"?`,
+    text: "Every card in this deck goes back to box 0. Other decks aren't touched. This can't be undone.",
+    ok: "Reset progress", danger: true,
+  });
+  if (!yes) return;
   try {
-    await api("/api/reset", {});
+    await api("/api/reset", { deck: S.deckName });
     await refresh();
   } catch (e) {
-    alert(e.message);
+    notify(e.message);
   }
   if (S.session && S.session.kind === "retired") S.session = null;
   render();
@@ -905,6 +1075,7 @@ const solEd = makeEditor($("#f-solution"), $("#f-sol-gutter"), 6, 22);
 // ---------- rendering ----------
 function render() {
   const v = S.view;
+  $("#stale").hidden = !S.stale;
   for (const name of ["card", "progress", "deck", "edit"]) $(`#view-${name}`).hidden = v !== name;
   $(".top").classList.toggle("no-chips", v !== "card");
   const links = {
@@ -914,6 +1085,9 @@ function render() {
     edit: [["#deck", "← Back to deck"]],
   }[v];
   $("#navlinks").innerHTML = links.map(([href, label]) => `<a class="navlink" href="${href}">${label}</a>`).join("");
+  const sel = $("#deck-select");
+  sel.innerHTML = S.decks.map((d) => `<option value="${esc(d.name)}"${d.name === S.deckName ? " selected" : ""}>${esc(d.name)} (${d.count})</option>`).join("");
+  sel.disabled = v === "edit"; // switching decks mid-edit would save into the wrong deck
   if (v === "card") {
     renderChips();
     renderCard();
@@ -945,6 +1119,9 @@ function renderCard() {
   $("#c-cat").textContent = c.cat;
   $("#c-num").textContent = `card ${S.cards.findIndex((x) => x.id === c.id) + 1} of ${S.cards.length}`;
   $("#c-box").textContent = box >= RETIRED ? "retired" : `box ${box}`;
+  const src = $("#c-src");
+  src.hidden = !c.source;
+  if (c.source) src.innerHTML = `<span class="sep">·</span> <span class="src">${esc(c.source)}</span>`;
   const sess = $("#c-sess");
   sess.hidden = !S.session;
   if (S.session) {
@@ -990,9 +1167,9 @@ function renderNotice() {
     text = `${d.first} passed first try, ${d.retry} after a retry, ${d.shown} solution${d.shown === 1 ? "" : "s"} shown, ${d.skipped} skipped.`;
     actions = [["Keep drilling", "keep", true], ["See progress", "progress"]];
   } else if (!S.cards.length) {
-    title = "No cards loaded.";
-    text = "cards.json is missing or empty. Run python3 convert_cards.py path/to/syntax_drill.py, then reload.";
-    actions = [];
+    title = "This deck is empty.";
+    text = `Add your first card to "${S.deckName}", or copy some in from another deck: open that deck's Deck page, select cards, and use Copy to.`;
+    actions = [["Add a card", "new", true], ["Open Deck page", "deck"]];
   } else if (S.session && S.session.kind === "retired") {
     title = "No retired cards here yet.";
     text = "A card retires when it reaches box 3: three first-try passes.";
@@ -1100,6 +1277,7 @@ function renderProgress() {
   rr.textContent = `Review retired (${retired})`;
   rr.disabled = !retired;
   $("#summary").textContent = `${retired} of ${S.cards.length} retired · ${box0} in box 0`;
+  $("#deck-file").textContent = `decks/${S.deckName}.json`;
 }
 
 // ---------- deck ----------
@@ -1110,6 +1288,11 @@ function boxBadge(id) {
 }
 
 function renderDeck() {
+  $("#deck-title").textContent = S.deckName || "Deck";
+  $("#deck-decks").innerHTML = S.decks.map((d) =>
+    `<li><button data-deck="${esc(d.name)}" aria-current="${d.name === S.deckName}">${esc(d.name)}<span class="n">${d.count}</span></button></li>`).join("");
+  $("#deck-delete").disabled = S.decks.length < 2;
+  $("#deck-delete").title = S.decks.length < 2 ? "Create another deck before deleting this one" : "";
   const flash = $("#deck-flash");
   flash.hidden = !S.flash;
   if (S.flash) flash.innerHTML = `<strong>${esc(S.flash.title)}</strong>${esc(S.flash.text)}`;
@@ -1124,11 +1307,13 @@ function renderDeck() {
   const q = S.deck.q.trim().toLowerCase();
   const rows = S.cards.filter((c) =>
     (S.deck.cat === "all" || c.cat === S.deck.cat) &&
-    (!q || `${c.id}\n${c.prompt}\n${c.setup}`.toLowerCase().includes(q)));
+    (!q || `${c.id}\n${c.prompt}\n${c.source}\n${c.setup}`.toLowerCase().includes(q)));
+  S.deck.shown = rows.map((c) => c.id);
   $("#deck-list").innerHTML = rows.map((c) => `
-    <li class="deck-row">
+    <li class="deck-row${S.deck.sel.has(c.id) ? " sel" : ""}">
+      <label class="pick"><input type="checkbox" data-sel="${esc(c.id)}"${S.deck.sel.has(c.id) ? " checked" : ""}><span class="sr-only">Select ${esc(c.id)}</span></label>
       <div>
-        <div class="deck-meta"><span class="tag">${esc(c.cat)}</span><span>${esc(c.id)}</span></div>
+        <div class="deck-meta"><span class="tag">${esc(c.cat)}</span><span>${esc(c.id)}</span>${c.source ? `<span class="src">${esc(c.source)}</span>` : ""}</div>
         <div class="deck-prompt">${fmtPrompt(c.prompt)}</div>
       </div>
       ${boxBadge(c.id)}
@@ -1136,11 +1321,138 @@ function renderDeck() {
         <button class="btn sm" data-card="${esc(c.id)}">Drill</button>
         <a class="btn sm" href="#deck/edit/${encodeURIComponent(c.id)}">Edit</a>
       </div>
-    </li>`).join("") || `<li class="deck-empty">${S.cards.length ? "No cards match." : "No cards yet. Add one with New card."}</li>`;
+    </li>`).join("") || `<li class="deck-empty">${S.cards.length ? "No cards match." : "This deck is empty. Add a card with New card, or open another deck and copy cards in."}</li>`;
+  $("#deck-selall").hidden = !rows.length;
+  renderSelbar();
 
   const shown = rows.length === S.cards.length ? "" : ` Showing ${rows.length}.`;
   const retired = S.cards.filter((c) => boxOf(c.id) >= RETIRED).length;
   $("#deck-summary").textContent = `${S.cards.length} cards in ${cats.length} categories, ${retired} retired.${shown}`;
+}
+
+function renderSelbar() {
+  const bar = $("#deck-selbar");
+  const n = S.deck.sel.size;
+  bar.hidden = !n;
+  if (!n) return;
+  const others = S.decks.filter((d) => d.name !== S.deckName);
+  if (!others.some((d) => d.name === S.deck.copyTo)) S.deck.copyTo = others.length ? others[0].name : null;
+  const copy = others.length
+    ? `<span>Copy to</span>
+       <select class="input" id="copy-to" aria-label="Deck to copy into">${others.map((d) =>
+         `<option value="${esc(d.name)}"${d.name === S.deck.copyTo ? " selected" : ""}>${esc(d.name)}</option>`).join("")}</select>
+       <button class="btn sm primary" data-act="copy">Copy</button>`
+    : `<span>Make another deck to copy these into.</span><button class="btn sm" data-act="new-deck">New deck</button>`;
+  bar.innerHTML = `<span><strong>${n}</strong> selected</span>${copy}<button class="linkbtn" data-act="clear-sel">Clear</button>`;
+}
+
+function resetDrillState() {
+  Object.assign(S, { filter: "all", session: null, done: null, lastId: null, current: null, flash: null });
+  S.deck.cat = "all";
+  S.deck.q = "";
+  S.deck.sel.clear();
+  $("#deck-q").value = "";
+}
+
+async function switchDeck(name) {
+  if (!name || name === S.deckName) return render();
+  try {
+    await api("/api/decks/select", { name });
+  } catch (e) {
+    notify(e.message);
+    return render();
+  }
+  S.deckName = name;
+  resetDrillState();
+  try { await refresh(); } catch (e) { S.oops = e.message; }
+  show(pick());
+}
+
+async function newDeck() {
+  let created = null;
+  const name = await ask({
+    title: "New deck",
+    text: "Letters, digits, spaces, - and _. It's saved as decks/<name>.json.",
+    input: "", ok: "Create deck",
+    validate: async (value) => {
+      if (!value.trim()) return "Give the deck a name.";
+      try {
+        created = await api("/api/decks/create", { name: value });
+      } catch (e) {
+        return e.message;
+      }
+    },
+  });
+  if (name === null || !created) return;
+  await switchDeck(created.name);
+  S.flash = { title: "CREATED", text: `${created.name}. It's empty: add a card, or open another deck and copy cards in.` };
+  if (location.hash === "#deck") render();
+  else location.hash = "deck";
+}
+
+async function renameDeck() {
+  const old = S.deckName;
+  let renamed = null;
+  const name = await ask({
+    title: `Rename "${old}"`,
+    text: "Its file and progress move with it.",
+    input: old, ok: "Rename",
+    validate: async (value) => {
+      if (!value.trim()) return "Give the deck a name.";
+      if (value.trim() === old) return null;
+      try {
+        renamed = await api("/api/decks/rename", { name: old, newName: value });
+      } catch (e) {
+        return e.message;
+      }
+    },
+  });
+  if (name === null || !renamed) return;
+  S.deckName = renamed.name;
+  try { await refresh(); } catch (e) { S.oops = e.message; }
+  S.flash = { title: "RENAMED", text: `${old} → ${renamed.name}. Its file is now decks/${renamed.name}.json.` };
+  render();
+}
+
+async function deleteDeck() {
+  const name = S.deckName, n = S.cards.length;
+  if (S.decks.length < 2) return;
+  const yes = await ask({
+    title: `Delete the "${name}" deck?`,
+    text: `Its ${n} card${n === 1 ? "" : "s"} and their progress are removed, along with decks/${name}.json. This can't be undone.`,
+    ok: "Delete deck", danger: true,
+  });
+  if (!yes) return;
+  try {
+    await api("/api/decks/delete", { name });
+  } catch (e) {
+    return notify(e.message);
+  }
+  S.deckName = null; // the server falls back to another deck
+  resetDrillState();
+  try { await refresh(); } catch (e) { S.oops = e.message; }
+  S.flash = { title: "DELETED", text: `the ${name} deck. You're on ${S.deckName} now.` };
+  show(pick());
+}
+
+async function copySelected() {
+  const to = $("#copy-to") && $("#copy-to").value;
+  const ids = [...S.deck.sel];
+  if (!to || !ids.length) return;
+  try {
+    const r = await api("/api/cards/copy", { fromDeck: S.deckName, toDeck: to, ids });
+    const renamed = Object.entries(r.copied).filter(([a, b]) => a !== b);
+    S.deck.sel.clear();
+    await refresh();
+    S.flash = {
+      title: "COPIED",
+      text: `${ids.length} card${ids.length === 1 ? "" : "s"} to ${to}.` +
+        (renamed.length ? ` Renamed to avoid clashing ids: ${renamed.map(([a, b]) => `${a} → ${b}`).join(", ")}.` : ""),
+    };
+    render();
+  } catch (e) {
+    notify(e.message);
+  }
 }
 
 // ---------- card form ----------
@@ -1156,10 +1468,10 @@ async function openForm(id) {
   if (S.form && S.form.key === key) return render();
   S.form = { key, originalId: id, dirty: false, idTouched: id !== null, result: null, busy: false, loading: id !== null };
   try { await refresh(); } catch (e) { /* use what we have */ }
-  let card = { id: "", cat: S.filter !== "all" ? S.filter : "", prompt: "", setup: "", solution: "" };
+  let card = { id: "", cat: S.filter !== "all" ? S.filter : "", prompt: "", source: "", setup: "", solution: "" };
   if (id !== null) {
     try {
-      card = await api(`/api/cards/${encodeURIComponent(id)}`);
+      card = await api(`/api/cards/${encodeURIComponent(id)}?deck=${encodeURIComponent(S.deckName)}`);
     } catch (e) {
       S.flash = { title: "NOT FOUND", text: `No card with id "${id}". It may have been renamed or deleted.` };
       location.hash = "deck";
@@ -1171,6 +1483,7 @@ async function openForm(id) {
   $("#f-prompt").value = card.prompt;
   $("#f-cat").value = card.cat;
   $("#f-id").value = card.id;
+  $("#f-source").value = card.source || "";
   setupEd.set(card.setup);
   solEd.set(card.solution);
   render();
@@ -1182,6 +1495,7 @@ function formFields() {
     id: $("#f-id").value.trim(),
     cat: $("#f-cat").value.trim().toLowerCase(),
     prompt: $("#f-prompt").value.trim(),
+    source: $("#f-source").value.trim(),
     setup: $("#f-setup").value,
     solution: $("#f-solution").value,
   };
@@ -1197,7 +1511,7 @@ function renderForm() {
   $("#f-save-kbd").textContent = IS_MAC ? "⌘ S" : "Ctrl S";
   $("#f-test-kbd").textContent = IS_MAC ? "⌘ Enter" : "Ctrl Enter";
   for (const b of ["#f-save", "#f-test", "#f-delete"]) $(b).disabled = !!f.busy || f.loading;
-  $("#cat-list").innerHTML = categories().map((c) => `<option value="${esc(c)}">`).join("");
+  $("#cat-list").innerHTML = [...new Set([...categories(), ...CATS])].map((c) => `<option value="${esc(c)}">`).join("");
   renderPreview();
   renderFormResult();
 }
@@ -1206,6 +1520,7 @@ function renderPreview() {
   const f = formFields();
   $("#p-cat").textContent = f.cat || "category";
   $("#p-id").textContent = f.id;
+  $("#p-src").textContent = f.source;
   $("#p-prompt").innerHTML = f.prompt ? fmtPrompt(f.prompt) : `<span class="empty">Your prompt shows up here.</span>`;
   $("#p-given").hidden = !f.setup.trim();
   $("#p-setup").textContent = f.setup.replace(/^\n+|\n+$/g, "");
@@ -1268,7 +1583,7 @@ async function saveForm() {
   form.busy = "save";
   renderForm();
   try {
-    const { card } = await api("/api/cards/save", { originalId: form.originalId, card: f });
+    const { card } = await api("/api/cards/save", { deck: S.deckName, originalId: form.originalId, card: f });
     form.dirty = false;
     await refresh();
     const renamed = form.originalId && form.originalId !== card.id ? ` (renamed from ${form.originalId})` : "";
@@ -1286,11 +1601,16 @@ async function saveForm() {
 async function deleteForm() {
   const form = S.form;
   if (!form || form.originalId === null || form.busy) return;
-  if (!confirm(`Delete "${form.originalId}"? It's removed from cards.json along with its progress. This can't be undone.`)) return;
+  const yes = await ask({
+    title: `Delete "${form.originalId}"?`,
+    text: `It's removed from the "${S.deckName}" deck along with its progress. This can't be undone.`,
+    ok: "Delete card", danger: true,
+  });
+  if (!yes || S.form !== form) return;
   form.busy = "delete";
   renderForm();
   try {
-    await api("/api/cards/delete", { id: form.originalId });
+    await api("/api/cards/delete", { deck: S.deckName, id: form.originalId });
     form.dirty = false;
     await refresh();
     S.flash = { title: "DELETED", text: form.originalId };
@@ -1328,8 +1648,15 @@ document.addEventListener("click", (e) => {
     else if (a === "progress") location.hash = "progress";
     else if (a === "retired") startRetired();
     else if (a === "all") { S.filter = "all"; show(pick()); }
+    else if (a === "new") location.hash = "deck/new";
+    else if (a === "copy") copySelected();
+    else if (a === "new-deck") newDeck();
+    else if (a === "clear-sel") { S.deck.sel.clear(); renderDeck(); }
+    else if (a === "deck") location.hash = "deck";
     return;
   }
+  const deckBtn = e.target.closest("[data-deck]");
+  if (deckBtn) return switchDeck(deckBtn.dataset.deck);
   const row = e.target.closest("[data-card]");
   if (row) {
     S.session = null;
@@ -1361,17 +1688,35 @@ $("#deck-chips").addEventListener("click", (e) => {
   S.deck.cat = btn.dataset.cat;
   renderDeck();
 });
-for (const id of ["#f-prompt", "#f-cat", "#f-id", "#f-setup", "#f-solution"]) {
+for (const id of ["#f-prompt", "#f-cat", "#f-id", "#f-source", "#f-setup", "#f-solution"]) {
   $(id).addEventListener("input", (e) => {
     if (!S.form) return;
     S.form.dirty = true;
     if (e.target.id === "f-id") S.form.idTouched = true;
-    if (!S.form.idTouched && S.form.originalId === null && e.target.id !== "f-setup" && e.target.id !== "f-solution") {
+    if (!S.form.idTouched && S.form.originalId === null && (e.target.id === "f-cat" || e.target.id === "f-prompt")) {
       $("#f-id").value = suggestId($("#f-cat").value, $("#f-prompt").value);
     }
     renderPreview();
   });
 }
+$("#deck-select").addEventListener("change", (e) => switchDeck(e.target.value));
+$("#deck-new").addEventListener("click", newDeck);
+$("#deck-rename").addEventListener("click", renameDeck);
+$("#deck-delete").addEventListener("click", deleteDeck);
+$("#deck-selall").addEventListener("click", () => {
+  for (const id of S.deck.shown || []) S.deck.sel.add(id);
+  renderDeck();
+});
+$("#deck-list").addEventListener("change", (e) => {
+  const box = e.target.closest("[data-sel]");
+  if (!box) return;
+  box.checked ? S.deck.sel.add(box.dataset.sel) : S.deck.sel.delete(box.dataset.sel);
+  box.closest(".deck-row").classList.toggle("sel", box.checked);
+  renderSelbar();
+});
+$("#deck-selbar").addEventListener("change", (e) => {
+  if (e.target.id === "copy-to") S.deck.copyTo = e.target.value;
+});
 $("#f-save").addEventListener("click", saveForm);
 $("#f-test").addEventListener("click", testForm);
 $("#f-delete").addEventListener("click", deleteForm);
@@ -1401,14 +1746,25 @@ async function route() {
   }
 }
 
-// Leaving the card form with unsaved changes asks first; a cancelled leave
-// puts the old hash back, which fires one more hashchange we ignore.
+// Leaving the card form with unsaved changes asks first. While asking, the old
+// hash is put back (that fires one hashchange we ignore); if the answer is
+// "discard", we navigate to where the user was going.
 let lastHash = location.hash, ignoreHash = false;
-window.addEventListener("hashchange", () => {
+window.addEventListener("hashchange", async () => {
   if (ignoreHash) { ignoreHash = false; return; }
-  if (S.view === "edit" && S.form && S.form.dirty && !confirm("Discard your unsaved changes to this card?")) {
+  if (S.view === "edit" && S.form && S.form.dirty) {
+    const target = location.hash || "#";
     ignoreHash = true;
     location.hash = lastHash;
+    const form = S.form;
+    const discard = await ask({
+      title: "Discard unsaved changes?",
+      text: "Your edits to this card haven't been saved.",
+      ok: "Discard changes", cancel: "Keep editing", danger: true,
+    });
+    if (!discard || S.form !== form) return;
+    form.dirty = false;
+    location.hash = target;
     return;
   }
   lastHash = location.hash;

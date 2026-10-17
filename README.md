@@ -22,7 +22,8 @@ The server runs whatever code you type, so it only listens on `127.0.0.1`. It al
   - Show solution: the card goes back to box 0. Peeking after you've already passed is free.
 - **Picking**: lower boxes come up more often (odds 6 : 3 : 1 for boxes 0, 1, 2). Within a box it picks at random, never the same card twice in a row. Retired cards stop appearing.
 - **Progress** page: a per-category breakdown, **Drill the weakest 10**, **Review retired**, and **Reset progress**.
-- **Deck** page: every card, searchable, with add, edit and delete. See below.
+- **Deck** page: every card in the current deck, searchable, with add, edit and delete. See below.
+- **Decks**: switch decks from the menu next to the logo. Each deck keeps its own progress. See below.
 
 Each run gets 5 seconds and 1 MB of output. Exceptions show as `Type: message`, the same as Python prints them.
 
@@ -32,50 +33,65 @@ Each run gets 5 seconds and 1 MB of output. Exceptions show as `Type: message`, 
 | --- | --- |
 | `server.py` | HTTP server and code runner |
 | `index.html` | The whole UI: drill, progress, deck and card form (vanilla HTML/CSS/JS) |
-| `cards.json` | The deck |
-| `progress.json` | Your boxes, created automatically (gitignored) |
+| `decks/*.json` | One file per deck; `decks/starter.json` is the 56-card starter deck |
+| `progress.json` | Your boxes for every deck, created automatically (gitignored) |
 | `convert_cards.py` | One-time importer from `syntax_drill.py` |
+
+## Decks
+
+A deck is one file in `decks/`, and its name is the file name: the `LeetCode` deck lives in `decks/LeetCode.json`. The deck you pick in the menu next to the logo is remembered between visits. Progress is tracked separately per deck, and **Reset progress** only resets the current deck.
+
+On the **Deck** page, the **Decks** panel lists every deck (click one to switch). It also has:
+
+- **New deck** creates an empty deck and switches to it.
+- **Rename** renames the deck and its file; progress comes along.
+- **Delete** removes the deck, its file and its progress after a confirm. You can't delete your only deck.
+
+**Copying cards between decks:** tick cards on the Deck page (or **Select all shown** after searching or filtering), pick a deck under **Copy to**, and click **Copy**. Copies start at box 0 in the new deck. If an id is already taken there, the copy gets a `-2` suffix.
+
+Card ids only need to be unique within a deck.
 
 ## See, add and edit cards
 
 Open **Deck** (top right of the drill screen) to see every card. You can search prompts, ids and setup code, and filter by category. Each row shows the card's box and has **Drill** (practice that card now) and **Edit**.
 
-- **New card** / **Edit** opens a form with the prompt, category, id, setup and reference solution. The code fields use the same editor as drilling. A live preview shows how the card will look.
+- **New card** / **Edit** opens a form with the prompt, category, id, an optional **source** (where the problem came from, e.g. `LC 49 · Group Anagrams`, shown on the card), setup and reference solution. The code fields use the same editor as drilling. A live preview shows how the card will look.
 - **Test run** (`⌘ Enter`) runs the solution and shows what it prints.
 - **Save card** (`⌘ S`) runs the solution again and refuses to save if it raises an exception or prints nothing. What it prints becomes the card's expected output, so editing a solution can never leave a stale `expected` behind.
 - Changing a card's id carries its progress over to the new id. **Delete** removes the card and its progress after a confirm.
 - The form warns before you leave with unsaved changes.
 
-Saves go straight into `cards.json`, keeping card order and formatting, and take effect without a restart. If `cards.json` has a JSON error from a hand edit, the app won't overwrite it; fix the file first.
+Saves go straight into the deck's file, keeping card order and formatting, and take effect without a restart. If that file has a JSON error from a hand edit, the app won't overwrite it; fix the file first.
 
 ## Add a card by hand
 
-You can also edit `cards.json` directly. Append an object to the list:
+You can also edit a deck file in `decks/` directly. Append an object to the list:
 
 ```json
 {
   "id": "dict-pop-default",
   "cat": "dict",
   "prompt": "Remove `\"z\"` from d without a KeyError if it's missing, then print d.",
+  "source": "LC 1 · example",
   "setup": "d = {\"a\": 1}",
   "solution": "d.pop(\"z\", None)\nprint(d)"
 }
 ```
 
-- `id`, `cat`, `prompt` and `solution` are required. `setup` is optional; it runs before your code and is shown as **Given**.
+- `id`, `cat`, `prompt` and `solution` are required. `setup` is optional; it runs before your code and is shown as **Given**. `source` is optional free text.
 - `expected` is optional. If you leave it out, the server runs `solution` once and uses what it prints.
 - `lang` defaults to `"python"`.
 - Wrap text in backticks in `prompt` to show it as code.
-- `cat` is usually one of `dict`, `list`, `set`, `string`, `misc`. A new category gets its own filter chip automatically.
+- `cat` can be anything (letters, digits, `-`, `_`). The filter chips show the categories the deck actually uses.
 
-You don't need to restart the server: it reloads `cards.json` whenever the file changes, and the new card shows up the next time a card is picked (or when you reload the page). If the JSON is invalid, the server keeps the previous deck and prints the error in the terminal.
+You don't need to restart the server: it reloads a deck file whenever it changes, and the new card shows up the next time a card is picked (or when you reload the page). A new `.json` file you drop into `decks/` shows up as a deck the same way. If the JSON is invalid, the server keeps the previous version of that deck and prints the error in the terminal.
 
 ## Re-importing from syntax_drill.py
 
-`cards.json` was generated once with:
+`decks/starter.json` was generated once with:
 
 ```sh
 python3 convert_cards.py ../syntax_drill.py
 ```
 
-This runs every reference solution to record its expected output, and refuses to write the file if any of them fail. Running it again overwrites `cards.json`, including any cards you added by hand.
+This runs every reference solution to record its expected output, and refuses to write the file if any of them fail. Running it again overwrites `decks/starter.json`, including any cards you added to that deck. Other decks aren't touched.

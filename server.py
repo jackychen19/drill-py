@@ -4,6 +4,9 @@
 Run:   python3 server.py          then open http://localhost:8000
        python3 server.py 8080     to use another port
 
+Each deck is one JSON file in decks/ (a list of card objects). Progress for
+every deck lives in progress.json.
+
 Stdlib only. The server executes code you type, so it binds to 127.0.0.1 and
 rejects requests whose Host or Origin isn't this machine (blocks other websites
 and DNS-rebinding tricks from reaching /run).
@@ -18,7 +21,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote
+from urllib.parse import parse_qs, unquote, urlsplit
 
 try:
     import resource  # POSIX only; used to cap runaway output
@@ -29,7 +32,8 @@ HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
 ROOT = Path(__file__).resolve().parent
 INDEX_FILE = ROOT / "index.html"
-CARDS_FILE = ROOT / "cards.json"
+DECKS_DIR = Path(os.environ.get("DRILL_DECKS", ROOT / "decks"))
+DEFAULT_DECK = "starter"
 PROGRESS_FILE = Path(os.environ.get("DRILL_PROGRESS", ROOT / "progress.json"))
 
 TIMEOUT = 5  # seconds per run
@@ -38,6 +42,8 @@ MAX_FILE = 1024 * 1024  # bytes the child may write before it is killed
 MAX_BODY = 256 * 1024
 RETIRED = 3  # box 3 = retired
 ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+DECK_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,39}")  # also the file name, so no dots or slashes
+PUBLIC_FIELDS = ("id", "cat", "lang", "prompt", "source", "setup")
 
 ERR_MARK = "__DRILL_ERROR__"
 
@@ -104,8 +110,24 @@ def _read_capped(path):
     return text
 
 
+def _write_json(path, obj):
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(obj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def build_card(fields, expected, lang="python", extras=None):
+    """A card object in the on-disk key order. Empty optional fields are left out."""
+    card = {"id": fields["id"], "cat": fields["cat"], "lang": lang or "python", "prompt": fields["prompt"]}
+    if fields.get("source"):
+        card["source"] = fields["source"]
+    card.update(setup=fields.get("setup", ""), solution=fields["solution"], expected=expected)
+    card.update({k: v for k, v in (extras or {}).items() if k not in card and k != "source"})
+    return card
+
+
 class Cards:
-    """cards.json, re-read whenever the file changes, so new cards need no restart."""
+    """One deck file, re-read whenever it changes, so new cards need no restart."""
 
     def __init__(self, path):
         self.path = path
@@ -118,8 +140,6 @@ class Cards:
         try:
             mtime = self.path.stat().st_mtime_ns
         except FileNotFoundError:
-            if self.mtime != "missing":
-                print(f"! {self.path.name} not found. Run: python3 convert_cards.py path/to/syntax_drill.py")
             self.mtime, self.cards, self.index = "missing", [], {}
             return
         if mtime == self.mtime:
@@ -143,17 +163,19 @@ class Cards:
         print(f"  loaded {len(cards)} cards from {self.path.name}")
 
     def _normalize(self, i, c, seen):
+        where = f"{self.path.name} card #{i + 1}"
         if not isinstance(c, dict) or not all(isinstance(c.get(k), str) and c.get(k) for k in ("id", "cat", "prompt", "solution")):
-            print(f"! card #{i + 1} skipped: needs non-empty string id, cat, prompt and solution")
+            print(f"! {where} skipped: needs non-empty string id, cat, prompt and solution")
             return None
         if c["id"] in seen:
-            print(f"! card #{i + 1} skipped: duplicate id {c['id']!r}")
+            print(f"! {where} skipped: duplicate id {c['id']!r}")
             return None
         card = {
             "id": c["id"],
             "cat": c["cat"],
             "lang": c.get("lang") or "python",
             "prompt": c["prompt"],
+            "source": c.get("source") if isinstance(c.get("source"), str) else "",
             "setup": c.get("setup") or "",
             "solution": c["solution"],
             "expected": c.get("expected"),
@@ -166,18 +188,18 @@ class Cards:
             elif card["lang"] == "python":
                 output, error = run_code(card["setup"], card["solution"])
                 if error:
-                    print(f"! card {card['id']!r} skipped: its solution raises {error}")
+                    print(f"! {where} ({card['id']!r}) skipped: its solution raises {error}")
                     return None
                 card["expected"] = output
             else:
-                print(f"! card {card['id']!r} skipped: needs an \"expected\" field")
+                print(f"! {where} ({card['id']!r}) skipped: needs an \"expected\" field")
                 return None
         return card
 
     def public(self):
         with self.lock:
             self._refresh()
-            return [{k: c[k] for k in ("id", "cat", "lang", "prompt", "setup")} for c in self.cards]
+            return [{k: c[k] for k in PUBLIC_FIELDS} for c in self.cards]
 
     def get(self, card_id):
         with self.lock:
@@ -185,7 +207,7 @@ class Cards:
             return self.index.get(card_id)
 
     # -- editing from the Deck page ---------------------------------------
-    # These rewrite cards.json as a whole, keeping card order and any extra
+    # These rewrite the deck file as a whole, keeping card order and any extra
     # fields a hand-edited card carries. A file that doesn't parse is never
     # overwritten, so a half-finished hand edit can't be clobbered.
     def _read_raw(self):
@@ -194,15 +216,13 @@ class Cards:
         except FileNotFoundError:
             return []
         except ValueError as e:
-            raise ValueError(f"cards.json has a JSON error ({e}). Fix it by hand first.")
+            raise ValueError(f"{self.path.name} has a JSON error ({e}). Fix it by hand first.")
         if not isinstance(raw, list):
-            raise ValueError("cards.json must be a list of card objects. Fix it by hand first.")
+            raise ValueError(f"{self.path.name} must be a list of card objects. Fix it by hand first.")
         return raw
 
     def _write_raw(self, raw):
-        tmp = self.path.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps(raw, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        os.replace(tmp, self.path)
+        _write_json(self.path, raw)
         self.mtime = None
         self._refresh()
 
@@ -214,26 +234,34 @@ class Cards:
             if original_id is not None:
                 pos = next((i for i, c in enumerate(raw) if isinstance(c, dict) and c.get("id") == original_id), None)
                 if pos is None:
-                    raise ValueError(f"card {original_id!r} no longer exists in cards.json")
+                    raise ValueError(f"card {original_id!r} no longer exists in this deck")
             if fields["id"] != original_id and any(isinstance(c, dict) and c.get("id") == fields["id"] for c in raw):
-                raise ValueError(f"id {fields['id']!r} is already used by another card")
+                raise ValueError(f"id {fields['id']!r} is already used by another card in this deck")
             old = raw[pos] if pos is not None else {}
-            card = {
-                "id": fields["id"],
-                "cat": fields["cat"],
-                "lang": old.get("lang") or "python",
-                "prompt": fields["prompt"],
-                "setup": fields["setup"],
-                "solution": fields["solution"],
-                "expected": expected,
-            }
-            card.update({k: v for k, v in old.items() if k not in card})
+            card = build_card(fields, expected, old.get("lang"), old)
             if pos is None:
                 raw.append(card)
             else:
                 raw[pos] = card
             self._write_raw(raw)
             return self.index.get(card["id"])
+
+    def add_copies(self, cards):
+        """Append copies of cards from another deck. Clashing ids get a -2, -3… suffix.
+        Returns {source id: new id}."""
+        with self.lock:
+            raw = self._read_raw()
+            taken = {c.get("id") for c in raw if isinstance(c, dict)}
+            placed = {}
+            for c in cards:
+                new_id, n = c["id"], 2
+                while new_id in taken:
+                    new_id, n = f"{c['id']}-{n}", n + 1
+                taken.add(new_id)
+                placed[c["id"]] = new_id
+                raw.append(build_card({**c, "id": new_id}, c["expected"], c["lang"]))
+            self._write_raw(raw)
+            return placed
 
     def delete(self, card_id):
         with self.lock:
@@ -244,25 +272,111 @@ class Cards:
             self._write_raw(kept)
 
 
+class Decks:
+    """The decks/ folder: one Cards per <name>.json."""
+
+    def __init__(self, folder):
+        self.dir = folder
+        self.lock = threading.Lock()
+        self.open = {}
+
+    def setup(self):
+        self.dir.mkdir(parents=True, exist_ok=True)
+        if not self.names():
+            _write_json(self.dir / f"{DEFAULT_DECK}.json", [])
+            print(f"  created an empty {DEFAULT_DECK} deck in {self.dir.name}/")
+
+    def names(self):
+        return sorted((p.stem for p in self.dir.glob("*.json") if DECK_RE.fullmatch(p.stem)), key=str.lower)
+
+    def _taken(self, name, ignore=None):
+        return any(n.lower() == name.lower() and n != ignore for n in self.names())
+
+    def get(self, name):
+        if not isinstance(name, str) or name not in self.names():
+            return None
+        with self.lock:
+            if name not in self.open:
+                self.open[name] = Cards(self.dir / f"{name}.json")
+            return self.open[name]
+
+    def summary(self):
+        return [{"name": n, "count": len(self.get(n).public())} for n in self.names()]
+
+    @staticmethod
+    def clean_name(name):
+        name = name.strip() if isinstance(name, str) else ""
+        if not DECK_RE.fullmatch(name):
+            raise ValueError("Deck names are 1-40 letters, digits, spaces, - or _, starting with a letter or digit.")
+        return name
+
+    def create(self, name):
+        name = self.clean_name(name)
+        with self.lock:
+            if self._taken(name):
+                raise ValueError(f"There's already a deck called {name!r}.")
+            _write_json(self.dir / f"{name}.json", [])
+        return name
+
+    def rename(self, old, new):
+        new = self.clean_name(new)
+        with self.lock:
+            if old not in self.names():
+                raise ValueError(f"No deck called {old!r}.")
+            if self._taken(new, ignore=old):
+                raise ValueError(f"There's already a deck called {new!r}.")
+            os.replace(self.dir / f"{old}.json", self.dir / f"{new}.json")
+            self.open.pop(old, None)
+            self.open.pop(new, None)
+        return new
+
+    def delete(self, name):
+        with self.lock:
+            names = self.names()
+            if name not in names:
+                raise ValueError(f"No deck called {name!r}.")
+            if len(names) == 1:
+                raise ValueError("That's your only deck. Create another one before deleting it.")
+            (self.dir / f"{name}.json").unlink()
+            self.open.pop(name, None)
+
+
 class Progress:
-    """progress.json: {"cards": {id: {"box", "misses", "passes", "last"}}}."""
+    """progress.json: {"version": 2, "active": deck, "decks": {deck: {card id: entry}}}.
+    An entry is {"box", "misses", "passes", "last"}."""
 
     def __init__(self, path):
         self.path = path
         self.lock = threading.Lock()
-        self.cards = self._load()
+        self.active = None
+        self.needs_save = False
+        self.migrated = False  # loaded a version-1 file
+        self.decks = self._load()
 
     def _load(self):
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
         except FileNotFoundError:
+            self.needs_save = True
             return {}
         except (OSError, ValueError) as e:
             bad = self.path.with_suffix(".json.bad")
             print(f"! {self.path.name} unreadable ({e}); moved to {bad.name}, starting fresh")
             os.replace(self.path, bad)
             return {}
-        cards = raw.get("cards", {}) if isinstance(raw, dict) else {}
+        if not isinstance(raw, dict):
+            return {}
+        if "decks" in raw:
+            decks = raw["decks"] if isinstance(raw["decks"], dict) else {}
+            self.active = raw.get("active") if isinstance(raw.get("active"), str) else None
+        else:
+            # Version 1 had a single deck; it became the starter deck.
+            decks = {DEFAULT_DECK: raw.get("cards", {})}
+            self.needs_save = self.migrated = True
+        return {name: self._clean(cards) for name, cards in decks.items() if isinstance(cards, dict)}
+
+    @staticmethod
+    def _clean(cards):
         clean = {}
         for cid, v in cards.items():
             if isinstance(v, dict):
@@ -275,16 +389,14 @@ class Progress:
         return clean
 
     def save(self):
-        tmp = self.path.with_suffix(".json.tmp")
-        tmp.write_text(json.dumps({"version": 1, "cards": self.cards}, indent=2) + "\n", encoding="utf-8")
-        os.replace(tmp, self.path)
+        _write_json(self.path, {"version": 2, "active": self.active, "decks": self.decks})
 
-    def _entry(self, cid):
-        return self.cards.setdefault(cid, {"box": 0, "misses": 0, "passes": 0, "last": None})
+    def _entry(self, deck, cid):
+        return self.decks.setdefault(deck, {}).setdefault(cid, {"box": 0, "misses": 0, "passes": 0, "last": None})
 
-    def record_run(self, cid, passed, first_try):
+    def record_run(self, deck, cid, passed, first_try):
         with self.lock:
-            e = self._entry(cid)
+            e = self._entry(deck, cid)
             if passed:
                 e["passes"] += 1
                 if first_try:
@@ -295,40 +407,62 @@ class Progress:
             self.save()
             return e["box"]
 
-    def reveal(self, cid):
+    def reveal(self, deck, cid):
         with self.lock:
-            e = self._entry(cid)
+            e = self._entry(deck, cid)
             e["box"] = 0
             e["last"] = int(time.time())
             self.save()
             return 0
 
-    def box(self, cid):
+    def box(self, deck, cid):
         with self.lock:
-            return self.cards.get(cid, {}).get("box", 0)
+            return self.decks.get(deck, {}).get(cid, {}).get("box", 0)
 
-    def reset(self):
+    def snapshot(self, deck):
         with self.lock:
-            self.cards = {}
+            return {cid: {"box": e["box"], "misses": e["misses"]} for cid, e in self.decks.get(deck, {}).items()}
+
+    def reset(self, deck):
+        with self.lock:
+            self.decks.pop(deck, None)
             self.save()
 
-    def rename(self, old, new):
+    def rename_card(self, deck, old, new):
         with self.lock:
-            if old in self.cards:
-                self.cards[new] = self.cards.pop(old)
+            cards = self.decks.get(deck, {})
+            if old in cards:
+                cards[new] = cards.pop(old)
                 self.save()
 
-    def forget(self, cid):
+    def forget_card(self, deck, cid):
         with self.lock:
-            if self.cards.pop(cid, None) is not None:
+            if self.decks.get(deck, {}).pop(cid, None) is not None:
                 self.save()
 
-    def snapshot(self):
+    def rename_deck(self, old, new):
         with self.lock:
-            return {cid: {"box": e["box"], "misses": e["misses"]} for cid, e in self.cards.items()}
+            if old in self.decks:
+                self.decks[new] = self.decks.pop(old)
+            if self.active == old:
+                self.active = new
+            self.save()
+
+    def drop_deck(self, name):
+        with self.lock:
+            self.decks.pop(name, None)
+            if self.active == name:
+                self.active = None
+            self.save()
+
+    def set_active(self, name):
+        with self.lock:
+            if self.active != name:
+                self.active = name
+                self.save()
 
 
-CARDS = Cards(CARDS_FILE)
+DECKS = Decks(DECKS_DIR)
 PROGRESS = Progress(PROGRESS_FILE)
 
 
@@ -386,20 +520,51 @@ class Handler(BaseHTTPRequestHandler):
         if "/api/state" not in (args[0] if args else ""):
             sys.stderr.write("  %s\n" % (fmt % args))
 
+    def _deck(self, name, fallback=False):
+        """Resolve a deck name to (name, Cards). No name means the active deck.
+        With fallback, an unknown name also falls back instead of failing."""
+        names = DECKS.names()
+        if name in (None, "") or (fallback and name not in names):
+            name = PROGRESS.active if PROGRESS.active in names else (DEFAULT_DECK if DEFAULT_DECK in names else (names or [None])[0])
+        cards = DECKS.get(name)
+        if not cards:
+            self._json(404, {"error": f"no deck called {name!r}"})
+        return name, cards
+
+    def _card(self, body):
+        deck, cards = self._deck(body.get("deck"))
+        if not cards:
+            return deck, None
+        card = cards.get(body.get("cardId")) if isinstance(body.get("cardId"), str) else None
+        if not card:
+            self._json(404, {"error": "unknown cardId"})
+        return deck, card
+
     # -- routes ------------------------------------------------------------
     def do_GET(self):
         if not self._local_only(post=False):
             return
-        path = self.path.split("?", 1)[0]
-        if path in ("/", "/index.html"):
+        url = urlsplit(self.path)
+        query = {k: v[0] for k, v in parse_qs(url.query).items()}
+        if url.path in ("/", "/index.html"):
             self._send(200, INDEX_FILE.read_bytes(), "text/html; charset=utf-8")
-        elif path == "/api/state":
-            self._json(200, {"cards": CARDS.public(), "progress": PROGRESS.snapshot()})
-        elif path.startswith("/api/cards/"):
+        elif url.path == "/api/state":
+            deck, cards = self._deck(query.get("deck"), fallback=True)
+            if cards:
+                self._json(200, {
+                    "deck": deck,
+                    "decks": DECKS.summary(),
+                    "cards": cards.public(),
+                    "progress": PROGRESS.snapshot(deck),
+                })
+        elif url.path.startswith("/api/cards/"):
             # Full card including solution, for the Deck page's edit form.
-            card = CARDS.get(unquote(path[len("/api/cards/"):]))
+            deck, cards = self._deck(query.get("deck"))
+            if not cards:
+                return
+            card = cards.get(unquote(url.path[len("/api/cards/"):]))
             if card:
-                self._json(200, {k: card[k] for k in ("id", "cat", "lang", "prompt", "setup", "solution", "expected")})
+                self._json(200, {k: card[k] for k in (*PUBLIC_FIELDS, "solution", "expected")})
             else:
                 self._json(404, {"error": "unknown card"})
         else:
@@ -415,6 +580,11 @@ class Handler(BaseHTTPRequestHandler):
             "/api/cards/test": self._test_card,
             "/api/cards/save": self._save_card,
             "/api/cards/delete": self._delete_card,
+            "/api/cards/copy": self._copy_cards,
+            "/api/decks/create": self._create_deck,
+            "/api/decks/rename": self._rename_deck,
+            "/api/decks/delete": self._delete_deck,
+            "/api/decks/select": self._select_deck,
         }.get(self.path)
         if not route:
             return self._json(404, {"error": "not found"})
@@ -422,17 +592,11 @@ class Handler(BaseHTTPRequestHandler):
         if body is not None:
             route(body)
 
-    def _card(self, body):
-        card = CARDS.get(body.get("cardId")) if isinstance(body.get("cardId"), str) else None
-        if not card:
-            self._json(404, {"error": "unknown cardId"})
-        return card
-
     def _run(self, body):
         code = body.get("code")
         if not isinstance(code, str):
             return self._json(400, {"error": "code must be a string"})
-        card = self._card(body)
+        deck, card = self._card(body)
         if not card:
             return
         if card["lang"] != "python":
@@ -440,20 +604,25 @@ class Handler(BaseHTTPRequestHandler):
         output, error = run_code(card["setup"], code)
         # Expected output always comes from the server's copy of the card.
         passed = error is None and output.strip() == card["expected"].strip()
-        box = PROGRESS.record_run(card["id"], passed, body.get("firstTry") is True)
+        box = PROGRESS.record_run(deck, card["id"], passed, body.get("firstTry") is True)
         self._json(200, {"output": output, "error": error, "passed": passed, "expected": card["expected"], "box": box})
 
     def _reveal(self, body):
-        card = self._card(body)
+        deck, card = self._card(body)
         if not card:
             return
         # reset=false is for peeking after a pass, when the card is already scored.
-        box = PROGRESS.reveal(card["id"]) if body.get("reset", True) is not False else PROGRESS.box(card["id"])
+        if body.get("reset", True) is not False:
+            box = PROGRESS.reveal(deck, card["id"])
+        else:
+            box = PROGRESS.box(deck, card["id"])
         self._json(200, {"solution": card["solution"], "expected": card["expected"], "box": box})
 
     def _reset(self, body):
-        PROGRESS.reset()
-        self._json(200, {"ok": True})
+        deck, cards = self._deck(body.get("deck"))
+        if cards:
+            PROGRESS.reset(deck)
+            self._json(200, {"ok": True})
 
     def _test_card(self, body):
         setup, solution = body.get("setup", ""), body.get("solution")
@@ -466,13 +635,17 @@ class Handler(BaseHTTPRequestHandler):
         original_id = body.get("originalId")
         raw = body.get("card")
         if (original_id is not None and not isinstance(original_id, str)) or not isinstance(raw, dict):
-            return self._json(400, {"error": "expected {originalId, card}"})
-        fields = {k: raw.get(k, "") for k in ("id", "cat", "prompt", "setup", "solution")}
+            return self._json(400, {"error": "expected {deck, originalId, card}"})
+        deck, cards = self._deck(body.get("deck"))
+        if not cards:
+            return
+        fields = {k: raw.get(k, "") for k in ("id", "cat", "prompt", "source", "setup", "solution")}
         if not all(isinstance(v, str) for v in fields.values()):
             return self._json(400, {"error": "card fields must be strings"})
         fields["id"] = fields["id"].strip()
         fields["cat"] = fields["cat"].strip().lower()
         fields["prompt"] = fields["prompt"].strip()
+        fields["source"] = fields["source"].strip()
         fields["setup"] = fields["setup"].strip("\n")
         fields["solution"] = fields["solution"].strip("\n")
         for k in ("id", "cat", "prompt", "solution"):
@@ -490,32 +663,91 @@ class Handler(BaseHTTPRequestHandler):
         if not output.strip():
             return self._json(422, {"error": "The solution doesn't print anything. Cards are checked by printed output.", "output": output})
         try:
-            card = CARDS.save(original_id, fields, output)
+            card = cards.save(original_id, fields, output)
         except ValueError as e:
             return self._json(409, {"error": str(e)})
         if original_id and original_id != card["id"]:
-            PROGRESS.rename(original_id, card["id"])
-        self._json(200, {"card": {k: card[k] for k in ("id", "cat", "prompt", "setup", "solution", "expected")}})
+            PROGRESS.rename_card(deck, original_id, card["id"])
+        self._json(200, {"card": {k: card[k] for k in (*PUBLIC_FIELDS, "solution", "expected")}})
 
     def _delete_card(self, body):
         card_id = body.get("id")
         if not isinstance(card_id, str):
             return self._json(400, {"error": "id must be a string"})
+        deck, cards = self._deck(body.get("deck"))
+        if not cards:
+            return
         try:
-            CARDS.delete(card_id)
+            cards.delete(card_id)
         except ValueError as e:
             return self._json(404, {"error": str(e)})
-        PROGRESS.forget(card_id)
+        PROGRESS.forget_card(deck, card_id)
         self._json(200, {"ok": True})
+
+    def _copy_cards(self, body):
+        ids = body.get("ids")
+        if not isinstance(ids, list) or not ids or not all(isinstance(i, str) for i in ids):
+            return self._json(400, {"error": "ids must be a non-empty list of card ids"})
+        src_name, src = self._deck(body.get("fromDeck"))
+        if not src:
+            return
+        dst_name, dst = self._deck(body.get("toDeck"))
+        if not dst:
+            return
+        if src_name == dst_name:
+            return self._json(422, {"error": "Pick a different deck to copy into."})
+        picked = [src.get(i) for i in ids]
+        if not all(picked):
+            return self._json(404, {"error": "some of those cards no longer exist"})
+        try:
+            placed = dst.add_copies(picked)
+        except ValueError as e:
+            return self._json(409, {"error": str(e)})
+        self._json(200, {"copied": placed})
+
+    def _create_deck(self, body):
+        try:
+            name = DECKS.create(body.get("name"))
+        except ValueError as e:
+            return self._json(422, {"error": str(e)})
+        PROGRESS.set_active(name)
+        self._json(200, {"name": name})
+
+    def _rename_deck(self, body):
+        old = body.get("name")
+        try:
+            new = DECKS.rename(old, body.get("newName"))
+        except ValueError as e:
+            return self._json(422, {"error": str(e)})
+        PROGRESS.rename_deck(old, new)
+        self._json(200, {"name": new})
+
+    def _delete_deck(self, body):
+        name = body.get("name")
+        try:
+            DECKS.delete(name)
+        except ValueError as e:
+            return self._json(422, {"error": str(e)})
+        PROGRESS.drop_deck(name)
+        self._json(200, {"ok": True})
+
+    def _select_deck(self, body):
+        deck, cards = self._deck(body.get("name"))
+        if cards:
+            PROGRESS.set_active(deck)
+            self._json(200, {"name": deck})
 
 
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_PORT
-    if not PROGRESS_FILE.exists():
-        PROGRESS.save()
+    DECKS.setup()
+    if PROGRESS.needs_save:
+        PROGRESS.save()  # create it, or upgrade a version-1 file in place
+    if PROGRESS.migrated:
+        print(f"  moved your existing progress into the {DEFAULT_DECK} deck")
     httpd = ThreadingHTTPServer((HOST, port), Handler)
     Handler.allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
-    CARDS.public()  # load + report card count at startup
+    DECKS.summary()  # load + report each deck at startup
     print(f"drill_ running at http://localhost:{port}  (bound to {HOST} only; Ctrl+C to stop)", flush=True)
     try:
         httpd.serve_forever()

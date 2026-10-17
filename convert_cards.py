@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""One-time conversion: card(...) definitions in syntax_drill.py -> cards.json.
+"""One-time conversion: card(...) definitions in syntax_drill.py -> decks/starter.json.
 
 Each reference solution is run with the same runner the server uses, and its
-output is stored as "expected". After this, the app only reads cards.json.
+output is stored as "expected". After this, the app only reads the deck file.
 
 Usage:  python3 convert_cards.py [path/to/syntax_drill.py]
         (defaults to syntax_drill.py next to this script)
@@ -13,7 +13,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from server import CARDS_FILE, run_code
+from server import DECKS_DIR, DEFAULT_DECK, run_code
 
 
 def load_cards(path):
@@ -28,6 +28,7 @@ def main():
     if not src.exists():
         sys.exit(f"Can't find {src}. Pass its path: python3 convert_cards.py path/to/syntax_drill.py")
 
+    target = DECKS_DIR / f"{DEFAULT_DECK}.json"
     cards, problems, seen = [], [], set()
     for c in load_cards(src):
         if c["id"] in seen:
@@ -47,13 +48,14 @@ def main():
         })
 
     if problems:
-        print("Not writing cards.json; these reference solutions are broken:")
+        print(f"Not writing {target.name}; these reference solutions are broken:")
         print("\n".join("  " + p for p in problems))
         sys.exit(1)
 
-    CARDS_FILE.write_text(json.dumps(cards, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    DECKS_DIR.mkdir(exist_ok=True)
+    target.write_text(json.dumps(cards, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     counts = ", ".join(f"{cat} {n}" for cat, n in Counter(c["cat"] for c in cards).items())
-    print(f"Wrote {len(cards)} cards to {CARDS_FILE.name} ({counts})")
+    print(f"Wrote {len(cards)} cards to {DECKS_DIR.name}/{target.name} ({counts})")
 
 
 if __name__ == "__main__":
