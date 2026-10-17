@@ -10,6 +10,7 @@ and DNS-rebinding tricks from reaching /run).
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -17,6 +18,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import unquote
 
 try:
     import resource  # POSIX only; used to cap runaway output
@@ -35,6 +37,7 @@ MAX_OUTPUT = 64 * 1024  # bytes of stdout returned to the browser
 MAX_FILE = 1024 * 1024  # bytes the child may write before it is killed
 MAX_BODY = 256 * 1024
 RETIRED = 3  # box 3 = retired
+ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 
 ERR_MARK = "__DRILL_ERROR__"
 
@@ -181,6 +184,65 @@ class Cards:
             self._refresh()
             return self.index.get(card_id)
 
+    # -- editing from the Deck page ---------------------------------------
+    # These rewrite cards.json as a whole, keeping card order and any extra
+    # fields a hand-edited card carries. A file that doesn't parse is never
+    # overwritten, so a half-finished hand edit can't be clobbered.
+    def _read_raw(self):
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return []
+        except ValueError as e:
+            raise ValueError(f"cards.json has a JSON error ({e}). Fix it by hand first.")
+        if not isinstance(raw, list):
+            raise ValueError("cards.json must be a list of card objects. Fix it by hand first.")
+        return raw
+
+    def _write_raw(self, raw):
+        tmp = self.path.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(raw, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        os.replace(tmp, self.path)
+        self.mtime = None
+        self._refresh()
+
+    def save(self, original_id, fields, expected):
+        """Insert or update a card. Returns the stored card; raises ValueError."""
+        with self.lock:
+            raw = self._read_raw()
+            pos = None
+            if original_id is not None:
+                pos = next((i for i, c in enumerate(raw) if isinstance(c, dict) and c.get("id") == original_id), None)
+                if pos is None:
+                    raise ValueError(f"card {original_id!r} no longer exists in cards.json")
+            if fields["id"] != original_id and any(isinstance(c, dict) and c.get("id") == fields["id"] for c in raw):
+                raise ValueError(f"id {fields['id']!r} is already used by another card")
+            old = raw[pos] if pos is not None else {}
+            card = {
+                "id": fields["id"],
+                "cat": fields["cat"],
+                "lang": old.get("lang") or "python",
+                "prompt": fields["prompt"],
+                "setup": fields["setup"],
+                "solution": fields["solution"],
+                "expected": expected,
+            }
+            card.update({k: v for k, v in old.items() if k not in card})
+            if pos is None:
+                raw.append(card)
+            else:
+                raw[pos] = card
+            self._write_raw(raw)
+            return self.index.get(card["id"])
+
+    def delete(self, card_id):
+        with self.lock:
+            raw = self._read_raw()
+            kept = [c for c in raw if not (isinstance(c, dict) and c.get("id") == card_id)]
+            if len(kept) == len(raw):
+                raise ValueError(f"card {card_id!r} not found")
+            self._write_raw(kept)
+
 
 class Progress:
     """progress.json: {"cards": {id: {"box", "misses", "passes", "last"}}}."""
@@ -249,6 +311,17 @@ class Progress:
         with self.lock:
             self.cards = {}
             self.save()
+
+    def rename(self, old, new):
+        with self.lock:
+            if old in self.cards:
+                self.cards[new] = self.cards.pop(old)
+                self.save()
+
+    def forget(self, cid):
+        with self.lock:
+            if self.cards.pop(cid, None) is not None:
+                self.save()
 
     def snapshot(self):
         with self.lock:
@@ -322,13 +395,27 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, INDEX_FILE.read_bytes(), "text/html; charset=utf-8")
         elif path == "/api/state":
             self._json(200, {"cards": CARDS.public(), "progress": PROGRESS.snapshot()})
+        elif path.startswith("/api/cards/"):
+            # Full card including solution, for the Deck page's edit form.
+            card = CARDS.get(unquote(path[len("/api/cards/"):]))
+            if card:
+                self._json(200, {k: card[k] for k in ("id", "cat", "lang", "prompt", "setup", "solution", "expected")})
+            else:
+                self._json(404, {"error": "unknown card"})
         else:
             self._json(404, {"error": "not found"})
 
     def do_POST(self):
         if not self._local_only(post=True):
             return
-        route = {"/run": self._run, "/api/reveal": self._reveal, "/api/reset": self._reset}.get(self.path)
+        route = {
+            "/run": self._run,
+            "/api/reveal": self._reveal,
+            "/api/reset": self._reset,
+            "/api/cards/test": self._test_card,
+            "/api/cards/save": self._save_card,
+            "/api/cards/delete": self._delete_card,
+        }.get(self.path)
         if not route:
             return self._json(404, {"error": "not found"})
         body = self._body()
@@ -366,6 +453,59 @@ class Handler(BaseHTTPRequestHandler):
 
     def _reset(self, body):
         PROGRESS.reset()
+        self._json(200, {"ok": True})
+
+    def _test_card(self, body):
+        setup, solution = body.get("setup", ""), body.get("solution")
+        if not isinstance(setup, str) or not isinstance(solution, str):
+            return self._json(400, {"error": "setup and solution must be strings"})
+        output, error = run_code(setup, solution)
+        self._json(200, {"output": output, "error": error})
+
+    def _save_card(self, body):
+        original_id = body.get("originalId")
+        raw = body.get("card")
+        if (original_id is not None and not isinstance(original_id, str)) or not isinstance(raw, dict):
+            return self._json(400, {"error": "expected {originalId, card}"})
+        fields = {k: raw.get(k, "") for k in ("id", "cat", "prompt", "setup", "solution")}
+        if not all(isinstance(v, str) for v in fields.values()):
+            return self._json(400, {"error": "card fields must be strings"})
+        fields["id"] = fields["id"].strip()
+        fields["cat"] = fields["cat"].strip().lower()
+        fields["prompt"] = fields["prompt"].strip()
+        fields["setup"] = fields["setup"].strip("\n")
+        fields["solution"] = fields["solution"].strip("\n")
+        for k in ("id", "cat", "prompt", "solution"):
+            if not fields[k].strip():
+                return self._json(422, {"error": f"{k} is required"})
+        if not ID_RE.fullmatch(fields["id"]):
+            return self._json(422, {"error": "id can only use letters, digits, - and _"})
+        if not ID_RE.fullmatch(fields["cat"]):
+            return self._json(422, {"error": "category can only use letters, digits, - and _"})
+
+        # The expected output is always computed here, never taken from the client.
+        output, error = run_code(fields["setup"], fields["solution"])
+        if error:
+            return self._json(422, {"error": "The solution raised an exception.", "output": output, "runError": error})
+        if not output.strip():
+            return self._json(422, {"error": "The solution doesn't print anything. Cards are checked by printed output.", "output": output})
+        try:
+            card = CARDS.save(original_id, fields, output)
+        except ValueError as e:
+            return self._json(409, {"error": str(e)})
+        if original_id and original_id != card["id"]:
+            PROGRESS.rename(original_id, card["id"])
+        self._json(200, {"card": {k: card[k] for k in ("id", "cat", "prompt", "setup", "solution", "expected")}})
+
+    def _delete_card(self, body):
+        card_id = body.get("id")
+        if not isinstance(card_id, str):
+            return self._json(400, {"error": "id must be a string"})
+        try:
+            CARDS.delete(card_id)
+        except ValueError as e:
+            return self._json(404, {"error": str(e)})
+        PROGRESS.forget(card_id)
         self._json(200, {"ok": True})
 
 

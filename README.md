@@ -22,6 +22,7 @@ The server runs whatever code you type, so it only listens on `127.0.0.1`. It al
   - Show solution: the card goes back to box 0. Peeking after you've already passed is free.
 - **Picking**: lower boxes come up more often (odds 6 : 3 : 1 for boxes 0, 1, 2). Within a box it picks at random, never the same card twice in a row. Retired cards stop appearing.
 - **Progress** page: a per-category breakdown, **Drill the weakest 10**, **Review retired**, and **Reset progress**.
+- **Deck** page: every card, searchable, with add, edit and delete. See below.
 
 Each run gets 5 seconds and 1 MB of output. Exceptions show as `Type: message`, the same as Python prints them.
 
@@ -30,14 +31,26 @@ Each run gets 5 seconds and 1 MB of output. Exceptions show as `Type: message`, 
 | File | What it is |
 | --- | --- |
 | `server.py` | HTTP server and code runner |
-| `index.html` | The whole UI (vanilla HTML/CSS/JS) |
+| `index.html` | The whole UI: drill, progress, deck and card form (vanilla HTML/CSS/JS) |
 | `cards.json` | The deck |
 | `progress.json` | Your boxes, created automatically (gitignored) |
 | `convert_cards.py` | One-time importer from `syntax_drill.py` |
 
-## Add a card
+## See, add and edit cards
 
-Append an object to the list in `cards.json`:
+Open **Deck** (top right of the drill screen) to see every card. You can search prompts, ids and setup code, and filter by category. Each row shows the card's box and has **Drill** (practice that card now) and **Edit**.
+
+- **New card** / **Edit** opens a form with the prompt, category, id, setup and reference solution. The code fields use the same editor as drilling. A live preview shows how the card will look.
+- **Test run** (`⌘ Enter`) runs the solution and shows what it prints.
+- **Save card** (`⌘ S`) runs the solution again and refuses to save if it raises an exception or prints nothing. What it prints becomes the card's expected output, so editing a solution can never leave a stale `expected` behind.
+- Changing a card's id carries its progress over to the new id. **Delete** removes the card and its progress after a confirm.
+- The form warns before you leave with unsaved changes.
+
+Saves go straight into `cards.json`, keeping card order and formatting, and take effect without a restart. If `cards.json` has a JSON error from a hand edit, the app won't overwrite it; fix the file first.
+
+## Add a card by hand
+
+You can also edit `cards.json` directly. Append an object to the list:
 
 ```json
 {

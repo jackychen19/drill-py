@@ -78,14 +78,15 @@ pre { margin: 0; }
   transition: border-color .15s, color .15s, background .15s;
 }
 .chip:hover { color: var(--text); border-color: var(--border); }
+.top.no-chips .chips { visibility: hidden; }
 .chip[aria-pressed="true"] {
   background: rgba(122, 162, 255, .16);
   border-color: rgba(122, 162, 255, .6);
   color: #fff;
   font-weight: 700;
 }
+.navlinks { justify-self: end; display: flex; gap: 24px; }
 .navlink {
-  justify-self: end;
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -168,7 +169,7 @@ pre { margin: 0; }
   white-space: pre;
   will-change: transform;
 }
-#code {
+#code, textarea.code {
   flex: 1;
   min-width: 0;
   display: block;
@@ -185,7 +186,7 @@ pre { margin: 0; }
   white-space: pre;
   overflow: auto;
 }
-#code::placeholder { color: var(--dim); }
+#code::placeholder, textarea.code::placeholder { color: var(--dim); }
 
 /* ---- buttons ---- */
 .actions { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -296,12 +297,70 @@ pre { margin: 0; }
 .weak .bx.zero { color: var(--box0); font-weight: 700; }
 .side .btn { margin-top: 20px; width: 100%; }
 
+/* ---- deck ---- */
+.deck-tools { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: var(--well);
+  border: 1px solid var(--border);
+  border-radius: var(--r-btn);
+  color: var(--text);
+  font: 15px/1.4 var(--sans);
+  outline: 0;
+  transition: border-color .15s;
+}
+.input:focus { border-color: rgba(122, 162, 255, .6); }
+.input::placeholder { color: var(--dim); }
+.input.mono { font-family: var(--mono); font-size: 14px; }
+textarea.input { resize: vertical; line-height: 1.5; }
+.deck-tools .chips { flex-wrap: wrap; }
+.chip .n { font: 12px/1 var(--mono); color: var(--dim); margin-left: 6px; }
+.chip[aria-pressed="true"] .n { color: var(--box2); }
+.deck { list-style: none; margin: 0; padding: 0; }
+.deck-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-soft);
+}
+.deck-meta { display: flex; align-items: center; gap: 10px; font: 13px/1 var(--mono); color: var(--muted); }
+.deck-meta .tag { padding: 4px 7px; font-size: 12px; }
+.deck-prompt { margin-top: 8px; font-size: 15px; font-weight: 600; line-height: 1.45; }
+.deck-prompt code { color: var(--primary); font-size: .93em; }
+.deck-row .bx { font: 13px/1 var(--mono); color: var(--muted); white-space: nowrap; }
+.deck-row .bx.zero { color: var(--box0); font-weight: 700; }
+.deck-row .bx.done { color: var(--retired); }
+.deck-actions { display: flex; gap: 8px; }
+.btn.sm { min-height: 44px; padding: 0 16px; font-size: 14px; font-weight: 600; }
+a.btn { text-decoration: none; }
+.deck-empty { padding: 28px 24px; color: var(--muted); border-top: 1px solid var(--border-soft); margin: 0; }
+.flash { padding: 14px 20px; border-radius: var(--r-panel); background: #142A1E; border: 1px solid rgba(134, 239, 172, .3); font-size: 15px; }
+.flash strong { font: 700 14px/1 var(--mono); color: var(--pass); margin-right: 10px; letter-spacing: .04em; }
+
+/* ---- card form ---- */
+.form { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+.field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.hint { font-size: 13px; color: var(--dim); }
+.hint code { color: var(--muted); }
+.actions .spacer { flex: 1; }
+.preview .meta { margin-top: 16px; }
+.preview .prompt { color: var(--text); font-size: 19px; margin-top: 12px; overflow-wrap: anywhere; }
+.preview .given { margin-top: 14px; padding: 10px 12px 12px; }
+.preview .given pre { font-size: 12.5px; line-height: 19px; margin-top: 8px; }
+.preview .empty { color: var(--dim); font-style: italic; font-weight: 500; }
+
 /* ---- responsive ---- */
 @media (max-width: 980px) {
   .top { grid-template-columns: 1fr auto; }
   .chips { grid-column: 1 / -1; grid-row: 2; overflow-x: auto; scrollbar-width: none; margin: 0 -24px; padding: 0 24px; }
   .chips::-webkit-scrollbar { display: none; }
   .layout, .layout.wide-rail { grid-template-columns: minmax(0, 1fr); }
+  .top.no-chips .chips { display: none; }
 }
 @media (max-width: 560px) {
   .wrap { padding: 0 16px 48px; }
@@ -315,6 +374,12 @@ pre { margin: 0; }
   .btn { padding: 0 18px; }
   .actions .btn { flex: 1 1 auto; }
   .bars { padding: 20px; }
+  .navlinks { gap: 16px; }
+  .deck-row { grid-template-columns: minmax(0, 1fr) auto; padding: 16px 20px; }
+  .deck-actions { grid-column: 1 / -1; }
+  .deck-actions .btn { flex: 1; }
+  .field-row { grid-template-columns: 1fr; }
+  .form, .deck-tools { padding: 20px; }
   .prog-head h1 { font-size: 28px; }
 }
 </style>
@@ -324,7 +389,7 @@ pre { margin: 0; }
   <header class="top">
     <div class="brand"><a class="logo" href="#">drill<span>_</span></a><span class="lang">Python</span></div>
     <nav class="chips" id="chips" aria-label="Category filter"></nav>
-    <a class="navlink" id="navlink" href="#progress">Progress →</a>
+    <nav class="navlinks" id="navlinks" aria-label="Pages"></nav>
   </header>
 
   <!-- Card view -->
@@ -412,6 +477,96 @@ pre { margin: 0; }
       </section>
     </aside>
   </main>
+
+  <!-- Deck view: every card, searchable -->
+  <main class="layout wide-rail" id="view-deck" hidden>
+    <div class="col">
+      <div class="prog-head">
+        <h1>Deck</h1>
+        <a class="btn primary" href="#deck/new">New card</a>
+      </div>
+      <div class="flash" id="deck-flash" hidden></div>
+      <section class="panel">
+        <div class="deck-tools">
+          <input class="input" id="deck-q" type="search" placeholder="Search prompts, ids and setup code" aria-label="Search cards" autocomplete="off" spellcheck="false">
+          <div class="chips" id="deck-chips" aria-label="Category filter"></div>
+        </div>
+        <ul class="deck" id="deck-list"></ul>
+      </section>
+    </div>
+    <aside class="rail">
+      <section class="panel side">
+        <h2 class="eyebrow">Your deck</h2>
+        <p id="deck-summary"></p>
+      </section>
+      <section class="panel side">
+        <h2 class="eyebrow">Editing cards</h2>
+        <p class="lines">Edits save straight to <code>cards.json</code>.<br>The solution runs on save; what it prints becomes the expected output.<br>Renaming a card's id keeps its progress.</p>
+      </section>
+    </aside>
+  </main>
+
+  <!-- Card form: new / edit -->
+  <main class="layout wide-rail" id="view-edit" hidden>
+    <div class="col">
+      <div class="prog-head"><h1 id="f-title">New card</h1></div>
+      <section class="panel form">
+        <label class="field">
+          <span class="label">Prompt</span>
+          <textarea class="input" id="f-prompt" rows="3" spellcheck="true" placeholder="What should the code do? Say exactly what to print."></textarea>
+          <span class="hint">Wrap code in backticks, like <code>`setdefault`</code>, to show it as code.</span>
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span class="label">Category</span>
+            <input class="input mono" id="f-cat" list="cat-list" autocomplete="off" spellcheck="false" placeholder="dict">
+            <datalist id="cat-list"></datalist>
+          </label>
+          <label class="field">
+            <span class="label">ID</span>
+            <input class="input mono" id="f-id" autocomplete="off" spellcheck="false" placeholder="dict-pop-default">
+          </label>
+        </div>
+      </section>
+
+      <section class="editor">
+        <div class="ed-head"><span>given · runs before the solution</span><span>optional</span></div>
+        <div class="ed-body">
+          <div class="gutter" aria-hidden="true"><div class="gutter-inner" id="f-setup-gutter"></div></div>
+          <textarea class="code" id="f-setup" aria-label="Given (setup code)" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" wrap="off" data-gramm="false"></textarea>
+        </div>
+      </section>
+
+      <section class="editor">
+        <div class="ed-head"><span>reference solution</span><span>must print something</span></div>
+        <div class="ed-body">
+          <div class="gutter" aria-hidden="true"><div class="gutter-inner" id="f-sol-gutter"></div></div>
+          <textarea class="code" id="f-solution" aria-label="Reference solution" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" wrap="off" data-gramm="false"></textarea>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button class="btn primary" id="f-save"><span id="f-save-label">Save card</span><kbd id="f-save-kbd"></kbd></button>
+        <button class="btn" id="f-test"><span>Test run</span><kbd id="f-test-kbd"></kbd></button>
+        <a class="btn quiet" href="#deck">Cancel</a>
+        <span class="spacer"></span>
+        <button class="btn danger" id="f-delete" hidden>Delete</button>
+      </div>
+      <div id="f-result" aria-live="polite"></div>
+    </div>
+    <aside class="rail">
+      <section class="panel side preview">
+        <h2 class="eyebrow">Preview</h2>
+        <div class="meta"><span class="tag" id="p-cat"></span><span id="p-id"></span></div>
+        <p class="prompt" id="p-prompt"></p>
+        <div class="given" id="p-given"><div class="label">Given</div><pre id="p-setup"></pre></div>
+      </section>
+      <section class="panel side">
+        <h2 class="eyebrow">How saving works</h2>
+        <p class="lines">Save runs the solution; what it prints becomes the expected output.<br>Renaming the id keeps the card's progress.<br>Changes are live right away, no restart.</p>
+      </section>
+    </aside>
+  </main>
 </div>
 
 <script>
@@ -420,7 +575,7 @@ const $ = (s) => document.querySelector(s);
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 const CATS = ["dict", "list", "set", "string", "misc"];
 const RETIRED = 3;
-const MIN_ROWS = 6, MAX_ROWS = 22, LINE_H = 24, ED_PAD = 28;
+const LINE_H = 24, ED_PAD = 28;
 const PICK_WEIGHT = [6, 3, 1]; // relative odds for box 0, 1, 2
 
 const S = {
@@ -439,6 +594,9 @@ const S = {
   session: null,     // {kind:"weakest", ids, i, stats} | {kind:"retired"}
   done: null,        // stats from a finished weakest-10 session
   busy: false,
+  deck: { q: "", cat: "all" },
+  flash: null,      // message shown once on the deck page
+  form: null,       // card form state while on #deck/new or #deck/edit/<id>
 };
 
 // ---------- helpers ----------
@@ -464,7 +622,7 @@ async function api(path, body) {
     throw new Error("Can't reach the server. Is python3 server.py still running?");
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `${res.status} ${res.statusText}`);
+  if (!res.ok) throw Object.assign(new Error(data.error || `${res.status} ${res.statusText}`), { data });
   return data;
 }
 
@@ -519,8 +677,7 @@ function show(card) {
   S.result = null;
   S.solution = null;
   S.oops = null;
-  ta.value = "";
-  updateGutter();
+  drillEd.set("");
   render();
   if (card && S.view === "card") ta.focus({ preventScroll: true });
 }
@@ -641,113 +798,133 @@ async function resetProgress() {
 }
 
 // ---------- editor ----------
-const ta = $("#code");
-const gutter = $("#gutter");
-let gutterRows = 0;
+// A plain <textarea> with a line-number gutter: Tab = 4 spaces, Shift+Tab dedents,
+// Enter keeps indentation. Used for the drill editor and the card form.
+function makeEditor(ta, gutter, minRows, maxRows) {
+  let gutterRows = 0;
 
-function updateGutter() {
-  const lines = ta.value.split("\n").length;
-  const rows = Math.max(lines, MIN_ROWS);
-  if (rows !== gutterRows) {
-    gutterRows = rows;
-    gutter.textContent = Array.from({ length: rows }, (_, i) => i + 1).join("\n");
+  function update() {
+    const lines = ta.value.split("\n").length;
+    const rows = Math.max(lines, minRows);
+    if (rows !== gutterRows) {
+      gutterRows = rows;
+      gutter.textContent = Array.from({ length: rows }, (_, i) => i + 1).join("\n");
+    }
+    ta.style.height = Math.min(rows, maxRows) * LINE_H + ED_PAD + "px";
+    sync();
   }
-  ta.style.height = Math.min(rows, MAX_ROWS) * LINE_H + ED_PAD + "px";
-  syncGutter();
-}
-function syncGutter() { gutter.style.transform = `translateY(${-ta.scrollTop}px)`; }
+  function sync() { gutter.style.transform = `translateY(${-ta.scrollTop}px)`; }
 
-// Insert text through the browser's editing pipeline so Cmd/Ctrl+Z still works.
-function insert(text) {
-  if (!document.execCommand("insertText", false, text)) {
-    ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, "end");
-    updateGutter();
+  // Insert text through the browser's editing pipeline so Cmd/Ctrl+Z still works.
+  function insert(text) {
+    if (!document.execCommand("insertText", false, text)) {
+      ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, "end");
+      ta.dispatchEvent(new Event("input"));
+    }
   }
-}
 
-function selectedLines() {
-  const v = ta.value, s = ta.selectionStart;
-  let e = ta.selectionEnd;
-  if (e > s && v[e - 1] === "\n") e--; // selection ending at a line start doesn't include that line
-  const start = v.lastIndexOf("\n", s - 1) + 1;
-  let end = v.indexOf("\n", e);
-  if (end < 0) end = v.length;
-  return { start, end };
-}
-
-function mapLines(fn) {
-  const { start, end } = selectedLines();
-  const s = ta.selectionStart, e = ta.selectionEnd;
-  const lines = ta.value.slice(start, end).split("\n");
-  let first = 0, total = 0;
-  const out = lines.map((ln, i) => {
-    const next = fn(ln);
-    if (i === 0) first = next.length - ln.length;
-    total += next.length - ln.length;
-    return next;
-  }).join("\n");
-  if (out === ta.value.slice(start, end)) return;
-  ta.setSelectionRange(start, end);
-  insert(out);
-  if (s === e) {
-    const pos = Math.max(start, s + first);
-    ta.setSelectionRange(pos, pos);
-  } else {
-    ta.setSelectionRange(Math.max(start, s + first), Math.max(start, e + total));
+  function selectedLines() {
+    const v = ta.value, s = ta.selectionStart;
+    let e = ta.selectionEnd;
+    if (e > s && v[e - 1] === "\n") e--; // selection ending at a line start doesn't include that line
+    const start = v.lastIndexOf("\n", s - 1) + 1;
+    let end = v.indexOf("\n", e);
+    if (end < 0) end = v.length;
+    return { start, end };
   }
-}
 
-function indent() {
-  if (ta.value.slice(ta.selectionStart, ta.selectionEnd).includes("\n")) {
-    mapLines((ln) => (ln ? "    " + ln : ln));
-  } else {
-    insert("    ");
+  function mapLines(fn) {
+    const { start, end } = selectedLines();
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const lines = ta.value.slice(start, end).split("\n");
+    let first = 0, total = 0;
+    const out = lines.map((ln, i) => {
+      const next = fn(ln);
+      if (i === 0) first = next.length - ln.length;
+      total += next.length - ln.length;
+      return next;
+    }).join("\n");
+    if (out === ta.value.slice(start, end)) return;
+    ta.setSelectionRange(start, end);
+    insert(out);
+    if (s === e) {
+      const pos = Math.max(start, s + first);
+      ta.setSelectionRange(pos, pos);
+    } else {
+      ta.setSelectionRange(Math.max(start, s + first), Math.max(start, e + total));
+    }
   }
-}
 
-function dedent() {
-  mapLines((ln) => ln.replace(/^(\t| {1,4})/, ""));
-}
-
-function newline() {
-  const v = ta.value, s = ta.selectionStart;
-  const lineStart = v.lastIndexOf("\n", s - 1) + 1;
-  const lead = v.slice(lineStart).match(/^[ \t]*/)[0];
-  insert("\n" + lead.slice(0, Math.max(0, s - lineStart)));
-}
-
-ta.addEventListener("keydown", (e) => {
-  if (e.isComposing) return;
-  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) return; // global handler runs it
-  if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-    e.preventDefault();
-    e.shiftKey ? dedent() : indent();
-  } else if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
-    e.preventDefault();
-    newline();
-  } else if (e.key === "Escape") {
-    ta.blur(); // lets keyboard users Tab out of the editor
+  function indent() {
+    if (ta.value.slice(ta.selectionStart, ta.selectionEnd).includes("\n")) {
+      mapLines((ln) => (ln ? "    " + ln : ln));
+    } else {
+      insert("    ");
+    }
   }
-});
-ta.addEventListener("input", updateGutter);
-ta.addEventListener("scroll", syncGutter);
+
+  function dedent() {
+    mapLines((ln) => ln.replace(/^(\t| {1,4})/, ""));
+  }
+
+  function newline() {
+    const v = ta.value, s = ta.selectionStart;
+    const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+    const lead = v.slice(lineStart).match(/^[ \t]*/)[0];
+    insert("\n" + lead.slice(0, Math.max(0, s - lineStart)));
+  }
+
+  ta.addEventListener("keydown", (e) => {
+    if (e.isComposing) return;
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) return; // global handler runs it
+    if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      e.shiftKey ? dedent() : indent();
+    } else if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      newline();
+    } else if (e.key === "Escape") {
+      ta.blur(); // lets keyboard users Tab out of the editor
+    }
+  });
+  ta.addEventListener("input", update);
+  ta.addEventListener("scroll", sync);
+
+  return {
+    ta,
+    update,
+    set(value) { ta.value = value; update(); },
+  };
+}
+
+const drillEd = makeEditor($("#code"), $("#gutter"), 6, 22);
+const ta = drillEd.ta;
+const setupEd = makeEditor($("#f-setup"), $("#f-setup-gutter"), 3, 14);
+const solEd = makeEditor($("#f-solution"), $("#f-sol-gutter"), 6, 22);
 
 // ---------- rendering ----------
 function render() {
-  const card = S.view === "card";
-  $("#view-card").hidden = !card;
-  $("#view-progress").hidden = card;
-  $("#chips").style.visibility = card ? "visible" : "hidden";
-  const nav = $("#navlink");
-  nav.textContent = card ? "Progress →" : "← Back to cards";
-  nav.setAttribute("href", card ? "#progress" : "#");
-  if (card) {
+  const v = S.view;
+  for (const name of ["card", "progress", "deck", "edit"]) $(`#view-${name}`).hidden = v !== name;
+  $(".top").classList.toggle("no-chips", v !== "card");
+  const links = {
+    card: [["#deck", "Deck"], ["#progress", "Progress →"]],
+    progress: [["#", "← Back to cards"]],
+    deck: [["#", "← Back to cards"]],
+    edit: [["#deck", "← Back to deck"]],
+  }[v];
+  $("#navlinks").innerHTML = links.map(([href, label]) => `<a class="navlink" href="${href}">${label}</a>`).join("");
+  if (v === "card") {
     renderChips();
     renderCard();
     renderRail();
     renderResult();
-  } else {
+  } else if (v === "progress") {
     renderProgress();
+  } else if (v === "deck") {
+    renderDeck();
+  } else {
+    renderForm();
   }
 }
 
@@ -925,6 +1102,206 @@ function renderProgress() {
   $("#summary").textContent = `${retired} of ${S.cards.length} retired · ${box0} in box 0`;
 }
 
+// ---------- deck ----------
+function boxBadge(id) {
+  const b = boxOf(id);
+  if (b >= RETIRED) return `<span class="bx done">retired</span>`;
+  return `<span class="bx${b === 0 ? " zero" : ""}">box ${b}</span>`;
+}
+
+function renderDeck() {
+  const flash = $("#deck-flash");
+  flash.hidden = !S.flash;
+  if (S.flash) flash.innerHTML = `<strong>${esc(S.flash.title)}</strong>${esc(S.flash.text)}`;
+
+  const cats = categories().filter((c) => S.cards.some((x) => x.cat === c));
+  if (S.deck.cat !== "all" && !cats.includes(S.deck.cat)) S.deck.cat = "all";
+  $("#deck-chips").innerHTML = ["all", ...cats].map((c) => {
+    const n = c === "all" ? S.cards.length : S.cards.filter((x) => x.cat === c).length;
+    return `<button class="chip" data-cat="${esc(c)}" aria-pressed="${S.deck.cat === c}">${c === "all" ? "All" : esc(c)}<span class="n">${n}</span></button>`;
+  }).join("");
+
+  const q = S.deck.q.trim().toLowerCase();
+  const rows = S.cards.filter((c) =>
+    (S.deck.cat === "all" || c.cat === S.deck.cat) &&
+    (!q || `${c.id}\n${c.prompt}\n${c.setup}`.toLowerCase().includes(q)));
+  $("#deck-list").innerHTML = rows.map((c) => `
+    <li class="deck-row">
+      <div>
+        <div class="deck-meta"><span class="tag">${esc(c.cat)}</span><span>${esc(c.id)}</span></div>
+        <div class="deck-prompt">${fmtPrompt(c.prompt)}</div>
+      </div>
+      ${boxBadge(c.id)}
+      <div class="deck-actions">
+        <button class="btn sm" data-card="${esc(c.id)}">Drill</button>
+        <a class="btn sm" href="#deck/edit/${encodeURIComponent(c.id)}">Edit</a>
+      </div>
+    </li>`).join("") || `<li class="deck-empty">${S.cards.length ? "No cards match." : "No cards yet. Add one with New card."}</li>`;
+
+  const shown = rows.length === S.cards.length ? "" : ` Showing ${rows.length}.`;
+  const retired = S.cards.filter((c) => boxOf(c.id) >= RETIRED).length;
+  $("#deck-summary").textContent = `${S.cards.length} cards in ${cats.length} categories, ${retired} retired.${shown}`;
+}
+
+// ---------- card form ----------
+function suggestId(cat, prompt) {
+  const stop = new Set(["a", "an", "the", "of", "to", "in", "on", "and", "then", "print", "each", "its", "it", "is", "as", "with", "using", "from", "into", "that", "every", "only", "one", "own"]);
+  const words = prompt.toLowerCase().replace(/`/g, "").match(/[a-z0-9]+/g) || [];
+  const picked = words.filter((w) => !stop.has(w)).slice(0, 3);
+  return [cat.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ""), ...picked].filter(Boolean).join("-");
+}
+
+async function openForm(id) {
+  const key = id === null ? "new" : `edit:${id}`;
+  if (S.form && S.form.key === key) return render();
+  S.form = { key, originalId: id, dirty: false, idTouched: id !== null, result: null, busy: false, loading: id !== null };
+  try { await refresh(); } catch (e) { /* use what we have */ }
+  let card = { id: "", cat: S.filter !== "all" ? S.filter : "", prompt: "", setup: "", solution: "" };
+  if (id !== null) {
+    try {
+      card = await api(`/api/cards/${encodeURIComponent(id)}`);
+    } catch (e) {
+      S.flash = { title: "NOT FOUND", text: `No card with id "${id}". It may have been renamed or deleted.` };
+      location.hash = "deck";
+      return;
+    }
+  }
+  if (!S.form || S.form.key !== key) return; // navigated away while loading
+  S.form.loading = false;
+  $("#f-prompt").value = card.prompt;
+  $("#f-cat").value = card.cat;
+  $("#f-id").value = card.id;
+  setupEd.set(card.setup);
+  solEd.set(card.solution);
+  render();
+  $(id === null ? "#f-prompt" : "#f-solution").focus({ preventScroll: true });
+}
+
+function formFields() {
+  return {
+    id: $("#f-id").value.trim(),
+    cat: $("#f-cat").value.trim().toLowerCase(),
+    prompt: $("#f-prompt").value.trim(),
+    setup: $("#f-setup").value,
+    solution: $("#f-solution").value,
+  };
+}
+
+function renderForm() {
+  const f = S.form;
+  if (!f) return;
+  const editing = f.originalId !== null;
+  $("#f-title").textContent = f.loading ? "Loading…" : editing ? "Edit card" : "New card";
+  $("#f-delete").hidden = !editing;
+  $("#f-save-label").textContent = f.busy === "save" ? "Saving…" : "Save card";
+  $("#f-save-kbd").textContent = IS_MAC ? "⌘ S" : "Ctrl S";
+  $("#f-test-kbd").textContent = IS_MAC ? "⌘ Enter" : "Ctrl Enter";
+  for (const b of ["#f-save", "#f-test", "#f-delete"]) $(b).disabled = !!f.busy || f.loading;
+  $("#cat-list").innerHTML = categories().map((c) => `<option value="${esc(c)}">`).join("");
+  renderPreview();
+  renderFormResult();
+}
+
+function renderPreview() {
+  const f = formFields();
+  $("#p-cat").textContent = f.cat || "category";
+  $("#p-id").textContent = f.id;
+  $("#p-prompt").innerHTML = f.prompt ? fmtPrompt(f.prompt) : `<span class="empty">Your prompt shows up here.</span>`;
+  $("#p-given").hidden = !f.setup.trim();
+  $("#p-setup").textContent = f.setup.replace(/^\n+|\n+$/g, "");
+}
+
+function renderFormResult() {
+  const el = $("#f-result");
+  const r = S.form && S.form.result;
+  if (!r) return (el.innerHTML = "");
+  const ok = r.kind === "ok";
+  const body = r.output !== undefined || r.error
+    ? `<div class="cols" style="grid-template-columns:1fr"><div><div class="col-label">${ok ? "Prints (this becomes the expected output)" : "Output"}</div>${outputBlock(r.output || "", r.error, ok ? "pass" : "fail")}</div></div>`
+    : "";
+  el.innerHTML = `<div class="result ${ok ? "pass" : "miss"}${body ? "" : " oops"}">
+    <div class="banner"><span class="verdict">${esc(r.verdict)}</span><span class="banner-msg">${esc(r.message)}</span></div>${body}</div>`;
+}
+
+function formProblem(f) {
+  if (!f.prompt) return "Write a prompt.";
+  if (!f.cat) return "Pick a category.";
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(f.cat)) return "Category can only use letters, digits, - and _.";
+  if (!f.id) return "Give the card an id.";
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(f.id)) return "The id can only use letters, digits, - and _.";
+  if (!f.solution.trim()) return "Write the reference solution.";
+  if (f.id !== S.form.originalId && byId(f.id)) return `The id "${f.id}" is already used by another card.`;
+  return null;
+}
+
+async function testForm() {
+  const form = S.form;
+  if (!form || form.busy || form.loading) return;
+  const f = formFields();
+  if (!f.solution.trim()) {
+    form.result = { kind: "bad", verdict: "NOTHING TO RUN", message: "Write the reference solution first." };
+    return renderFormResult();
+  }
+  form.busy = "test";
+  renderForm();
+  try {
+    const r = await api("/api/cards/test", { setup: f.setup, solution: f.solution });
+    if (r.error) form.result = { kind: "bad", verdict: "SOLUTION FAILED", message: "It raised an exception, so it can't be saved yet.", output: r.output, error: r.error };
+    else if (!r.output.trim()) form.result = { kind: "bad", verdict: "NO OUTPUT", message: "Cards are checked by printed output, so the solution must print something.", output: "" };
+    else form.result = { kind: "ok", verdict: "RUNS", message: "Looks good. Save to keep it.", output: r.output };
+  } catch (e) {
+    form.result = { kind: "bad", verdict: "HOLD ON", message: e.message };
+  }
+  form.busy = false;
+  if (S.form === form) renderForm();
+}
+
+async function saveForm() {
+  const form = S.form;
+  if (!form || form.busy || form.loading) return;
+  const f = formFields();
+  const problem = formProblem(f);
+  if (problem) {
+    form.result = { kind: "bad", verdict: "NOT SAVED", message: problem };
+    return renderFormResult();
+  }
+  form.busy = "save";
+  renderForm();
+  try {
+    const { card } = await api("/api/cards/save", { originalId: form.originalId, card: f });
+    form.dirty = false;
+    await refresh();
+    const renamed = form.originalId && form.originalId !== card.id ? ` (renamed from ${form.originalId})` : "";
+    S.flash = { title: "SAVED", text: `${card.id}${renamed}. It expects: ${card.expected.split("\n")[0]}${card.expected.includes("\n") ? " …" : ""}` };
+    if (S.current && S.current.id === form.originalId) S.current = byId(card.id);
+    location.hash = "deck";
+  } catch (e) {
+    const d = e.data || {};
+    form.result = { kind: "bad", verdict: "NOT SAVED", message: e.message, output: d.output, error: d.runError };
+    form.busy = false;
+    if (S.form === form) renderForm();
+  }
+}
+
+async function deleteForm() {
+  const form = S.form;
+  if (!form || form.originalId === null || form.busy) return;
+  if (!confirm(`Delete "${form.originalId}"? It's removed from cards.json along with its progress. This can't be undone.`)) return;
+  form.busy = "delete";
+  renderForm();
+  try {
+    await api("/api/cards/delete", { id: form.originalId });
+    form.dirty = false;
+    await refresh();
+    S.flash = { title: "DELETED", text: form.originalId };
+    location.hash = "deck";
+  } catch (e) {
+    form.result = { kind: "bad", verdict: "NOT DELETED", message: e.message };
+    form.busy = false;
+    if (S.form === form) renderForm();
+  }
+}
+
 // ---------- wiring ----------
 $("#run").addEventListener("click", primary);
 $("#reveal").addEventListener("click", reveal);
@@ -964,27 +1341,85 @@ document.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (S.view === "edit" && S.form) {
+    if (mod && e.key === "Enter") { e.preventDefault(); testForm(); }
+    else if (mod && e.key.toLowerCase() === "s") { e.preventDefault(); saveForm(); }
+    return;
+  }
   if (S.view !== "card" || !S.current) return;
-  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+  if (e.key === "Enter" && mod) {
     e.preventDefault();
     primary();
   }
 });
 
+$("#deck-q").addEventListener("input", (e) => { S.deck.q = e.target.value; renderDeck(); });
+$("#deck-chips").addEventListener("click", (e) => {
+  const btn = e.target.closest(".chip");
+  if (!btn) return;
+  S.deck.cat = btn.dataset.cat;
+  renderDeck();
+});
+for (const id of ["#f-prompt", "#f-cat", "#f-id", "#f-setup", "#f-solution"]) {
+  $(id).addEventListener("input", (e) => {
+    if (!S.form) return;
+    S.form.dirty = true;
+    if (e.target.id === "f-id") S.form.idTouched = true;
+    if (!S.form.idTouched && S.form.originalId === null && e.target.id !== "f-setup" && e.target.id !== "f-solution") {
+      $("#f-id").value = suggestId($("#f-cat").value, $("#f-prompt").value);
+    }
+    renderPreview();
+  });
+}
+$("#f-save").addEventListener("click", saveForm);
+$("#f-test").addEventListener("click", testForm);
+$("#f-delete").addEventListener("click", deleteForm);
+
+function parseHash() {
+  const h = location.hash;
+  if (h === "#progress") return { view: "progress" };
+  if (h === "#deck") return { view: "deck" };
+  if (h === "#deck/new") return { view: "edit", id: null };
+  if (h.startsWith("#deck/edit/")) return { view: "edit", id: decodeURIComponent(h.slice("#deck/edit/".length)) };
+  return { view: "card" };
+}
+
 async function route() {
-  S.view = location.hash === "#progress" ? "progress" : "card";
+  const r = parseHash();
+  if (r.view !== "edit") S.form = null;
+  if (r.view !== "deck") S.flash = null;
+  S.view = r.view;
+  if (r.view === "edit") return openForm(r.id);
   render();
-  if (S.view === "progress") {
+  if (r.view === "progress" || r.view === "deck") {
     try { await refresh(); } catch (e) { /* show what we have */ }
     render();
-  } else if (S.current) {
-    ta.focus({ preventScroll: true });
+  } else {
+    if (S.current ? !byId(S.current.id) : !S.done) show(pick()); // card was deleted or renamed
+    if (S.current) ta.focus({ preventScroll: true });
   }
 }
-window.addEventListener("hashchange", route);
+
+// Leaving the card form with unsaved changes asks first; a cancelled leave
+// puts the old hash back, which fires one more hashchange we ignore.
+let lastHash = location.hash, ignoreHash = false;
+window.addEventListener("hashchange", () => {
+  if (ignoreHash) { ignoreHash = false; return; }
+  if (S.view === "edit" && S.form && S.form.dirty && !confirm("Discard your unsaved changes to this card?")) {
+    ignoreHash = true;
+    location.hash = lastHash;
+    return;
+  }
+  lastHash = location.hash;
+  route();
+});
+window.addEventListener("beforeunload", (e) => {
+  if (S.view === "edit" && S.form && S.form.dirty) e.preventDefault();
+});
 
 (async function init() {
-  updateGutter();
+  drillEd.update();
   try {
     await refresh();
   } catch (e) {
