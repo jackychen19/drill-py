@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drill_</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E1116'/%3E%3Crect x='8' y='21' width='16' height='4' rx='1' fill='%237AA2FF'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0E1116;
+  --panel: #151A21;
+  --well: #0F1318;
+  --gutter: #12161C;
+  --chip: #222833;
+  --border: #2A323D;
+  --border-soft: #222932;
+  --text: #E6EAF0;
+  --muted: #9AA6B5;
+  --dim: #6B7685;
+  --primary: #7AA2FF;
+  --on-primary: #0B1020;
+  --pass: #86EFAC;
+  --fail: #FCA5A5;
+  --box0: #F4B740;
+  --box1: #5E7DB8;
+  --box2: #9DB8EC;
+  --retired: #5FD68A;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r-panel: 14px;
+  --r-btn: 10px;
+  --line: 24px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+code, pre, kbd { font-family: var(--mono); }
+pre { margin: 0; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 64px; }
+
+/* ---- header ---- */
+.top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 0;
+}
+.brand { display: flex; align-items: baseline; gap: 14px; white-space: nowrap; }
+.logo { font: 700 22px/1 var(--mono); letter-spacing: -0.01em; color: var(--text); text-decoration: none; }
+.logo span { color: var(--primary); }
+.brand .lang { color: var(--muted); font-size: 16px; font-weight: 500; }
+.chips { display: flex; gap: 8px; }
+.chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.chip:hover { color: var(--text); border-color: var(--border); }
+.chip[aria-pressed="true"] {
+  background: rgba(122, 162, 255, .16);
+  border-color: rgba(122, 162, 255, .6);
+  color: #fff;
+  font-weight: 700;
+}
+.navlink {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.navlink:hover { color: var(--text); }
+
+/* ---- layout ---- */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 28px; align-items: start; }
+.layout.wide-rail { grid-template-columns: minmax(0, 1fr) 300px; }
+.col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.rail { display: flex; flex-direction: column; gap: 20px; }
+.panel { background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--r-panel); }
+
+/* ---- card ---- */
+.card { padding: 28px 32px 30px; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font: 13px/1 var(--mono); color: var(--muted); }
+.tag { background: var(--chip); color: var(--text); padding: 5px 8px; border-radius: 6px; }
+.meta .sep { color: var(--dim); }
+.sess { color: var(--primary); }
+.linkbtn {
+  background: none; border: 0; padding: 0 2px; cursor: pointer;
+  color: var(--muted); font: inherit; text-decoration: underline; text-underline-offset: 3px;
+}
+.linkbtn:hover { color: var(--text); }
+.prompt {
+  margin: 20px 0 0;
+  font: 800 30px/1.22 var(--sans);
+  letter-spacing: -0.02em;
+  text-wrap: pretty;
+}
+.prompt code { color: var(--primary); font-weight: 700; font-size: .93em; letter-spacing: 0; }
+.given {
+  margin-top: 20px;
+  background: var(--well);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 14px 16px 16px;
+}
+.label { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.given pre { margin-top: 12px; font-size: 14px; line-height: 21px; color: #C9D1DC; white-space: pre-wrap; word-break: break-word; }
+.notice-text { color: var(--muted); margin: 12px 0 0; max-width: 60ch; }
+.notice-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+
+/* ---- editor ---- */
+.editor {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  overflow: hidden;
+  transition: border-color .15s;
+}
+.editor:focus-within { border-color: rgba(122, 162, 255, .6); }
+.editor.miss { border-color: rgba(252, 165, 165, .75); }
+.editor.pass { border-color: rgba(134, 239, 172, .75); }
+.ed-head {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border-soft);
+  font: 13px/1.2 var(--mono);
+  color: var(--muted);
+}
+.ed-head span:last-child { white-space: nowrap; }
+.ed-body { display: flex; position: relative; }
+.gutter {
+  flex: none;
+  width: 44px;
+  background: var(--gutter);
+  overflow: hidden;
+  user-select: none;
+}
+.gutter-inner {
+  padding: 14px 10px 14px 0;
+  text-align: right;
+  font: 15px/var(--line) var(--mono);
+  color: var(--dim);
+  white-space: pre;
+  will-change: transform;
+}
+#code {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  margin: 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  padding: 14px 16px;
+  background: transparent;
+  color: var(--text);
+  caret-color: var(--primary);
+  font: 15px/var(--line) var(--mono);
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+}
+#code::placeholder { color: var(--dim); }
+
+/* ---- buttons ---- */
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: var(--r-btn);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s, opacity .15s;
+}
+.btn:hover:not(:disabled) { background: rgba(255, 255, 255, .03); border-color: #39424F; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn.primary:hover:not(:disabled) { background: #8DB0FF; border-color: #8DB0FF; }
+.btn.quiet { color: var(--muted); font-weight: 600; }
+.btn.danger { color: var(--fail); border-color: rgba(252, 165, 165, .35); }
+.btn.danger:hover:not(:disabled) { background: rgba(252, 165, 165, .06); border-color: rgba(252, 165, 165, .6); }
+.btn kbd { font-size: 13px; font-weight: 500; opacity: .75; }
+
+/* ---- result ---- */
+#result:empty { display: none; }
+.placeholder {
+  border: 1px dashed var(--border);
+  border-radius: var(--r-panel);
+  padding: 20px 24px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.result { background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--r-panel); overflow: hidden; }
+.banner { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 14px 20px; border-bottom: 1px solid var(--border-soft); }
+.result.miss .banner { background: #2C181B; }
+.result.pass .banner { background: #142A1E; }
+.result.oops .banner { background: #2C181B; border-bottom: 0; }
+.verdict { font: 700 14px/1.4 var(--mono); letter-spacing: .04em; }
+.result.miss .verdict, .result.oops .verdict { color: var(--fail); }
+.result.pass .verdict { color: var(--pass); }
+.banner-msg { font-size: 15px; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; }
+.cols > div { padding: 18px 20px 20px; min-width: 0; }
+.cols > div + div { border-left: 1px solid var(--border-soft); }
+.col-label { font: 700 12px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.out { font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.out.fail { color: var(--fail); }
+.out.pass { color: var(--pass); }
+.out + .out { margin-top: 8px; }
+.out.err { font-weight: 700; }
+.none { color: var(--dim); font: italic 14px/1.6 var(--mono); margin: 0; }
+
+/* ---- solution ---- */
+.solution { background: var(--panel); border: 1px solid rgba(244, 183, 64, .45); border-radius: var(--r-panel); overflow: hidden; }
+.sol-head {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px;
+  padding: 12px 20px;
+  background: rgba(244, 183, 64, .08);
+  border-bottom: 1px solid rgba(244, 183, 64, .25);
+  font: 13px/1.3 var(--mono);
+  color: var(--muted);
+}
+.sol-head strong { color: var(--box0); letter-spacing: .06em; }
+.sol-code { padding: 16px 20px; font-size: 15px; line-height: var(--line); overflow-x: auto; }
+.sol-out { padding: 14px 20px 18px; border-top: 1px solid var(--border-soft); }
+
+/* ---- rail ---- */
+.side { padding: 22px 22px 24px; }
+.eyebrow { margin: 0; font: 700 12.5px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.segs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 16px; }
+.segs i { height: 7px; border-radius: 4px; background: var(--border); }
+.segs i.on { background: var(--box0); }
+.segs.retired i.on { background: var(--retired); }
+.side p { margin: 16px 0 0; color: var(--muted); font-size: 15px; line-height: 1.45; }
+.side p.lines { line-height: 1.55; }
+.errbox { margin-top: 16px; padding: 14px 16px; background: var(--well); border: 1px solid var(--border-soft); border-radius: 10px; font: 14px/1.4 var(--mono); color: var(--fail); word-break: break-word; }
+.side code { font-size: 14px; color: var(--text); font-weight: 700; }
+
+/* ---- progress ---- */
+.prog-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.prog-head h1 { margin: 0; font: 800 34px/1.1 var(--sans); letter-spacing: -0.02em; }
+.bars { padding: 26px 28px 30px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); font-size: 15px; margin-bottom: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 10px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; }
+.bar-row { margin-top: 20px; }
+.bar-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.bar-name { font-weight: 700; font-size: 16px; }
+.bar-count { font: 13px/1 var(--mono); color: var(--muted); }
+.bar { display: flex; gap: 3px; height: 14px; border-radius: 7px; overflow: hidden; }
+.bar i { min-width: 6px; }
+.b0 { background: var(--box0); } .b1 { background: var(--box1); } .b2 { background: var(--box2); } .b3 { background: var(--retired); }
+.prog-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.prog-foot .summary { font: 13px/1.4 var(--mono); color: var(--muted); }
+.weak { list-style: none; margin: 16px 0 0; padding: 0; }
+.weak li { border-top: 1px solid var(--border-soft); }
+.weak button {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  width: 100%; min-height: 48px; padding: 8px 0;
+  background: none; border: 0; text-align: left; cursor: pointer;
+}
+.weak .t { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 15px; line-height: 1.4; font-weight: 500; }
+.weak button:hover .t { color: #fff; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--dim); }
+.weak .bx { flex: none; font: 13px/1 var(--mono); color: var(--muted); }
+.weak .bx.zero { color: var(--box0); font-weight: 700; }
+.side .btn { margin-top: 20px; width: 100%; }
+
+/* ---- responsive ---- */
+@media (max-width: 980px) {
+  .top { grid-template-columns: 1fr auto; }
+  .chips { grid-column: 1 / -1; grid-row: 2; overflow-x: auto; scrollbar-width: none; margin: 0 -24px; padding: 0 24px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .layout, .layout.wide-rail { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px 48px; }
+  .top { padding: 18px 0 20px; }
+  .chips { margin: 0 -16px; padding: 0 16px; }
+  .card { padding: 22px 20px 22px; }
+  .prompt { font-size: 22px; }
+  .ed-head .hint { display: none; }
+  .cols { grid-template-columns: 1fr; }
+  .cols > div + div { border-left: 0; border-top: 1px solid var(--border-soft); }
+  .btn { padding: 0 18px; }
+  .actions .btn { flex: 1 1 auto; }
+  .bars { padding: 20px; }
+  .prog-head h1 { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><a class="logo" href="#">drill<span>_</span></a><span class="lang">Python</span></div>
+    <nav class="chips" id="chips" aria-label="Category filter"></nav>
+    <a class="navlink" id="navlink" href="#progress">Progress →</a>
+  </header>
+
+  <!-- Card view -->
+  <main class="layout" id="view-card">
+    <div class="col">
+      <section class="panel card" aria-live="polite">
+        <div id="card-body">
+          <div class="meta">
+            <span class="tag" id="c-cat"></span>
+            <span id="c-num"></span><span class="sep">·</span><span id="c-box"></span>
+            <span id="c-sess" hidden></span>
+          </div>
+          <h1 class="prompt" id="c-prompt"></h1>
+          <div class="given" id="c-given">
+            <div class="label">Given</div>
+            <pre id="c-setup"></pre>
+          </div>
+        </div>
+        <div id="notice" hidden>
+          <h1 class="prompt" id="n-title" style="margin-top:0"></h1>
+          <p class="notice-text" id="n-text"></p>
+          <div class="notice-actions" id="n-actions"></div>
+        </div>
+      </section>
+
+      <section class="editor" id="editor">
+        <div class="ed-head"><span id="ed-left"></span><span id="ed-right"></span></div>
+        <div class="ed-body">
+          <div class="gutter" aria-hidden="true"><div class="gutter-inner" id="gutter"></div></div>
+          <textarea id="code" aria-label="Your code" spellcheck="false" autocorrect="off" autocapitalize="off"
+                    autocomplete="off" wrap="off" data-gramm="false" data-enable-grammarly="false"></textarea>
+        </div>
+      </section>
+
+      <div class="actions" id="actions">
+        <button class="btn primary" id="run"><span id="run-label">Run</span><kbd id="run-kbd"></kbd></button>
+        <button class="btn" id="reveal">Show solution</button>
+        <button class="btn quiet" id="skip">Skip</button>
+      </div>
+
+      <section class="solution" id="solution" hidden aria-live="polite"></section>
+      <div id="result" aria-live="polite"></div>
+    </div>
+
+    <aside class="rail">
+      <section class="panel side">
+        <h2 class="eyebrow">This card</h2>
+        <div class="segs" id="segs"><i></i><i></i><i></i><i></i></div>
+        <p id="rail-box"></p>
+      </section>
+      <section class="panel side" id="rail-info"></section>
+    </aside>
+  </main>
+
+  <!-- Progress view -->
+  <main class="layout wide-rail" id="view-progress" hidden>
+    <div class="col">
+      <div class="prog-head">
+        <h1>Progress</h1>
+        <button class="btn primary" id="drill-weak">Drill the weakest 10</button>
+      </div>
+      <section class="panel bars">
+        <div class="legend">
+          <span><i class="b0"></i>Box 0 · needs work</span>
+          <span><i class="b1"></i>Box 1</span>
+          <span><i class="b2"></i>Box 2</span>
+          <span><i class="b3"></i>Retired</span>
+        </div>
+        <div id="bars"></div>
+      </section>
+      <div class="prog-foot">
+        <button class="btn" id="review-retired">Review retired</button>
+        <span class="summary" id="summary"></span>
+      </div>
+    </div>
+    <aside class="rail">
+      <section class="panel side">
+        <h2 class="eyebrow">Weakest cards</h2>
+        <ul class="weak" id="weak"></ul>
+      </section>
+      <section class="panel side">
+        <h2 class="eyebrow">Your data</h2>
+        <p>Cards live in <code>cards.json</code>. Progress saves to a local file. Add a card after any interview by editing the JSON.</p>
+        <button class="btn danger" id="reset">Reset progress</button>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+const CATS = ["dict", "list", "set", "string", "misc"];
+const RETIRED = 3;
+const MIN_ROWS = 6, MAX_ROWS = 22, LINE_H = 24, ED_PAD = 28;
+const PICK_WEIGHT = [6, 3, 1]; // relative odds for box 0, 1, 2
+
+const S = {
+  view: "card",
+  cards: [],
+  progress: {},
+  filter: "all",
+  current: null,
+  lastId: null,
+  attempt: 0,
+  revealed: false,   // Show solution clicked before passing: no promotion possible
+  passed: false,
+  result: null,      // last /run response
+  solution: null,    // /api/reveal response
+  oops: null,        // network/server error message
+  session: null,     // {kind:"weakest", ids, i, stats} | {kind:"retired"}
+  done: null,        // stats from a finished weakest-10 session
+  busy: false,
+};
+
+// ---------- helpers ----------
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtPrompt = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+const boxOf = (id) => (S.progress[id] ? S.progress[id].box : 0);
+const missesOf = (id) => (S.progress[id] ? S.progress[id].misses : 0);
+const byId = (id) => S.cards.find((c) => c.id === id) || null;
+const randomOf = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const categories = () => [...CATS, ...new Set(S.cards.map((c) => c.cat).filter((c) => !CATS.includes(c)))];
+const setBox = (id, box) => { S.progress[id] = { misses: missesOf(id), ...S.progress[id], box }; };
+
+async function api(path, body) {
+  const opts = body === undefined ? {} : {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+  let res;
+  try {
+    res = await fetch(path, opts);
+  } catch {
+    throw new Error("Can't reach the server. Is python3 server.py still running?");
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `${res.status} ${res.statusText}`);
+  return data;
+}
+
+async function refresh() {
+  const d = await api("/api/state");
+  S.cards = d.cards;
+  S.progress = d.progress;
+  if (S.current) S.current = byId(S.current.id) || S.current; // keep the fresh copy
+}
+
+// ---------- picking ----------
+function inFilter(c) { return S.filter === "all" || c.cat === S.filter; }
+
+function pool() {
+  const cards = S.cards.filter(inFilter);
+  return S.session && S.session.kind === "retired"
+    ? cards.filter((c) => boxOf(c.id) >= RETIRED)
+    : cards.filter((c) => boxOf(c.id) < RETIRED);
+}
+
+// Lower boxes are more likely; within a box, uniform random; never the same card twice in a row.
+function pick() {
+  const p = pool();
+  if (!p.length) return null;
+  const cands = p.length > 1 ? p.filter((c) => c.id !== S.lastId) : p;
+  if (S.session && S.session.kind === "retired") return randomOf(cands);
+  const groups = {};
+  for (const c of cands) (groups[boxOf(c.id)] ||= []).push(c);
+  const boxes = Object.keys(groups).map(Number);
+  let r = Math.random() * boxes.reduce((t, b) => t + PICK_WEIGHT[b], 0);
+  for (const b of boxes) {
+    r -= PICK_WEIGHT[b];
+    if (r < 0) return randomOf(groups[b]);
+  }
+  return randomOf(groups[boxes[boxes.length - 1]]);
+}
+
+function weakest(cards) {
+  return cards
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => boxOf(c.id) < RETIRED)
+    .sort((a, b) => boxOf(a.c.id) - boxOf(b.c.id) || missesOf(b.c.id) - missesOf(a.c.id) || a.i - b.i)
+    .map(({ c }) => c);
+}
+
+function show(card) {
+  S.current = card;
+  if (card) S.lastId = card.id;
+  S.attempt = 0;
+  S.revealed = false;
+  S.passed = false;
+  S.result = null;
+  S.solution = null;
+  S.oops = null;
+  ta.value = "";
+  updateGutter();
+  render();
+  if (card && S.view === "card") ta.focus({ preventScroll: true });
+}
+
+async function nextCard() {
+  try { await refresh(); } catch (e) { /* keep drilling with what we have */ }
+  const sess = S.session;
+  if (sess && sess.kind === "weakest") {
+    let card = null;
+    while (!card && ++sess.i < sess.ids.length) card = byId(sess.ids[sess.i]);
+    if (!card) {
+      S.done = sess.stats;
+      S.session = null;
+      return show(null);
+    }
+    return show(card);
+  }
+  show(pick());
+}
+
+// ---------- actions ----------
+async function run() {
+  if (S.busy || !S.current || S.passed) return;
+  const code = ta.value;
+  if (!code.trim()) {
+    S.oops = "Type some code first.";
+    return renderResult();
+  }
+  const card = S.current;
+  const firstTry = S.attempt === 0 && !S.revealed;
+  S.busy = true;
+  $("#run-label").textContent = "Running…";
+  $("#run").disabled = true;
+  try {
+    const r = await api("/run", { cardId: card.id, code, firstTry });
+    if (S.current !== card) return;
+    S.attempt++;
+    S.result = { ...r, firstTry, revealed: S.revealed };
+    S.oops = null;
+    setBox(card.id, r.box);
+    if (!r.passed) S.progress[card.id].misses++;
+    if (r.passed) {
+      S.passed = true;
+      const st = S.session && S.session.stats;
+      if (st) firstTry ? st.first++ : st.retry++;
+    }
+  } catch (e) {
+    S.oops = e.message;
+  } finally {
+    S.busy = false;
+    $("#run").disabled = false;
+  }
+  render();
+  if (S.passed) $("#run").focus();
+}
+
+async function reveal() {
+  if (!S.current || S.solution) return;
+  const card = S.current;
+  const reset = !S.passed; // after a pass the card is already scored, so peeking is free
+  try {
+    const r = await api("/api/reveal", { cardId: card.id, reset });
+    if (S.current !== card) return;
+    S.solution = { ...r, reset };
+    if (reset) {
+      S.revealed = true;
+      setBox(card.id, r.box);
+      const st = S.session && S.session.stats;
+      if (st) st.shown++;
+    }
+  } catch (e) {
+    S.oops = e.message;
+  }
+  render();
+}
+
+function skip() {
+  const st = S.session && S.session.stats;
+  if (st && S.current && !S.passed) st.skipped++;
+  nextCard();
+}
+
+function primary() { S.passed ? nextCard() : run(); }
+
+function endSession() {
+  S.session = null;
+  S.done = null;
+  nextCard();
+}
+
+function startWeakest() {
+  const ids = weakest(S.cards).slice(0, 10).map((c) => c.id);
+  if (!ids.length) return;
+  S.filter = "all";
+  S.done = null;
+  S.session = { kind: "weakest", ids, i: 0, stats: { first: 0, retry: 0, shown: 0, skipped: 0 } };
+  show(byId(ids[0]));
+  location.hash = "";
+}
+
+function startRetired() {
+  S.done = null;
+  S.session = { kind: "retired" };
+  show(pick());
+  location.hash = "";
+}
+
+async function resetProgress() {
+  if (!confirm("Reset all progress? Every card goes back to box 0. This can't be undone.")) return;
+  try {
+    await api("/api/reset", {});
+    await refresh();
+  } catch (e) {
+    alert(e.message);
+  }
+  if (S.session && S.session.kind === "retired") S.session = null;
+  render();
+}
+
+// ---------- editor ----------
+const ta = $("#code");
+const gutter = $("#gutter");
+let gutterRows = 0;
+
+function updateGutter() {
+  const lines = ta.value.split("\n").length;
+  const rows = Math.max(lines, MIN_ROWS);
+  if (rows !== gutterRows) {
+    gutterRows = rows;
+    gutter.textContent = Array.from({ length: rows }, (_, i) => i + 1).join("\n");
+  }
+  ta.style.height = Math.min(rows, MAX_ROWS) * LINE_H + ED_PAD + "px";
+  syncGutter();
+}
+function syncGutter() { gutter.style.transform = `translateY(${-ta.scrollTop}px)`; }
+
+// Insert text through the browser's editing pipeline so Cmd/Ctrl+Z still works.
+function insert(text) {
+  if (!document.execCommand("insertText", false, text)) {
+    ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, "end");
+    updateGutter();
+  }
+}
+
+function selectedLines() {
+  const v = ta.value, s = ta.selectionStart;
+  let e = ta.selectionEnd;
+  if (e > s && v[e - 1] === "\n") e--; // selection ending at a line start doesn't include that line
+  const start = v.lastIndexOf("\n", s - 1) + 1;
+  let end = v.indexOf("\n", e);
+  if (end < 0) end = v.length;
+  return { start, end };
+}
+
+function mapLines(fn) {
+  const { start, end } = selectedLines();
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const lines = ta.value.slice(start, end).split("\n");
+  let first = 0, total = 0;
+  const out = lines.map((ln, i) => {
+    const next = fn(ln);
+    if (i === 0) first = next.length - ln.length;
+    total += next.length - ln.length;
+    return next;
+  }).join("\n");
+  if (out === ta.value.slice(start, end)) return;
+  ta.setSelectionRange(start, end);
+  insert(out);
+  if (s === e) {
+    const pos = Math.max(start, s + first);
+    ta.setSelectionRange(pos, pos);
+  } else {
+    ta.setSelectionRange(Math.max(start, s + first), Math.max(start, e + total));
+  }
+}
+
+function indent() {
+  if (ta.value.slice(ta.selectionStart, ta.selectionEnd).includes("\n")) {
+    mapLines((ln) => (ln ? "    " + ln : ln));
+  } else {
+    insert("    ");
+  }
+}
+
+function dedent() {
+  mapLines((ln) => ln.replace(/^(\t| {1,4})/, ""));
+}
+
+function newline() {
+  const v = ta.value, s = ta.selectionStart;
+  const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+  const lead = v.slice(lineStart).match(/^[ \t]*/)[0];
+  insert("\n" + lead.slice(0, Math.max(0, s - lineStart)));
+}
+
+ta.addEventListener("keydown", (e) => {
+  if (e.isComposing) return;
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) return; // global handler runs it
+  if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    e.preventDefault();
+    e.shiftKey ? dedent() : indent();
+  } else if (e.key === "Enter" && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    newline();
+  } else if (e.key === "Escape") {
+    ta.blur(); // lets keyboard users Tab out of the editor
+  }
+});
+ta.addEventListener("input", updateGutter);
+ta.addEventListener("scroll", syncGutter);
+
+// ---------- rendering ----------
+function render() {
+  const card = S.view === "card";
+  $("#view-card").hidden = !card;
+  $("#view-progress").hidden = card;
+  $("#chips").style.visibility = card ? "visible" : "hidden";
+  const nav = $("#navlink");
+  nav.textContent = card ? "Progress →" : "← Back to cards";
+  nav.setAttribute("href", card ? "#progress" : "#");
+  if (card) {
+    renderChips();
+    renderCard();
+    renderRail();
+    renderResult();
+  } else {
+    renderProgress();
+  }
+}
+
+function renderChips() {
+  $("#chips").innerHTML = ["all", ...categories()].map((c) =>
+    `<button class="chip" data-cat="${esc(c)}" aria-pressed="${S.filter === c}">${c === "all" ? "All" : esc(c)}</button>`
+  ).join("");
+}
+
+function renderCard() {
+  const c = S.current;
+  $("#card-body").hidden = !c;
+  $("#notice").hidden = !!c;
+  for (const id of ["#editor", "#actions"]) $(id).hidden = !c;
+  if (!c) return renderNotice();
+
+  const box = boxOf(c.id);
+  $("#c-cat").textContent = c.cat;
+  $("#c-num").textContent = `card ${S.cards.findIndex((x) => x.id === c.id) + 1} of ${S.cards.length}`;
+  $("#c-box").textContent = box >= RETIRED ? "retired" : `box ${box}`;
+  const sess = $("#c-sess");
+  sess.hidden = !S.session;
+  if (S.session) {
+    const label = S.session.kind === "weakest"
+      ? `weakest 10 · ${S.session.i + 1}/${S.session.ids.length}`
+      : "reviewing retired";
+    sess.innerHTML = `<span class="sep">·</span> <span class="sess">${label}</span> <button class="linkbtn" data-act="end">end</button>`;
+  }
+  $("#c-prompt").innerHTML = fmtPrompt(c.prompt);
+  $("#c-given").hidden = !c.setup;
+  $("#c-setup").textContent = c.setup;
+
+  const ran = S.attempt > 0;
+  const ed = $("#editor");
+  ed.classList.toggle("pass", S.passed);
+  ed.classList.toggle("miss", !!S.result && !S.result.passed);
+  $("#ed-left").innerHTML = ran ? "your code" : 'your code<span class="hint"> · from memory, no autocomplete</span>';
+  $("#ed-right").textContent = ran ? `attempt ${S.attempt}` : "Tab = 4 spaces";
+
+  $("#run-label").textContent = S.passed ? "Next card" : ran ? "Run again" : "Run";
+  $("#run-kbd").textContent = IS_MAC ? "⌘ Enter" : "Ctrl Enter";
+  const rv = $("#reveal");
+  rv.textContent = S.solution ? "Solution shown" : S.passed ? "See solution" : "Show solution";
+  rv.disabled = !!S.solution;
+  $("#skip").hidden = S.passed;
+
+  const sol = $("#solution");
+  sol.hidden = !S.solution;
+  if (S.solution) {
+    const note = S.solution.reset ? `card reset to box 0` : "card already scored";
+    sol.innerHTML = `
+      <div class="sol-head"><strong>REFERENCE SOLUTION</strong><span>${note}</span></div>
+      <pre class="sol-code">${esc(S.solution.solution)}</pre>
+      <div class="sol-out"><div class="col-label">Prints</div><pre class="out pass">${esc(S.solution.expected)}</pre></div>`;
+  }
+}
+
+function renderNotice() {
+  let title, text, actions;
+  if (S.done) {
+    const d = S.done;
+    title = "Session done.";
+    text = `${d.first} passed first try, ${d.retry} after a retry, ${d.shown} solution${d.shown === 1 ? "" : "s"} shown, ${d.skipped} skipped.`;
+    actions = [["Keep drilling", "keep", true], ["See progress", "progress"]];
+  } else if (!S.cards.length) {
+    title = "No cards loaded.";
+    text = "cards.json is missing or empty. Run python3 convert_cards.py path/to/syntax_drill.py, then reload.";
+    actions = [];
+  } else if (S.session && S.session.kind === "retired") {
+    title = "No retired cards here yet.";
+    text = "A card retires when it reaches box 3: three first-try passes.";
+    actions = [["Back to drilling", "end", true]];
+    if (S.filter !== "all") actions.push(["All categories", "all"]);
+  } else {
+    title = S.filter === "all" ? "Everything is retired." : `Every ${S.filter} card is retired.`;
+    text = "Nice. Review retired cards to keep them fresh, or pick another category.";
+    actions = [["Review retired", "retired", true]];
+    if (S.filter !== "all") actions.push(["All categories", "all"]);
+  }
+  $("#n-title").textContent = title;
+  $("#n-text").textContent = text;
+  $("#n-actions").innerHTML = actions.map(([label, act, prim]) =>
+    `<button class="btn${prim ? " primary" : ""}" data-act="${act}">${label}</button>`).join("");
+}
+
+function renderRail() {
+  const c = S.current;
+  const box = c ? boxOf(c.id) : 0;
+  const segs = $("#segs");
+  segs.classList.toggle("retired", box >= RETIRED);
+  [...segs.children].forEach((el, i) => el.classList.toggle("on", !!c && i <= box));
+
+  let text;
+  if (!c) text = "Pick a card to see where it sits.";
+  else if (S.passed && S.result.firstTry) text = box >= RETIRED
+    ? "Retired. It won't come back unless you review retired cards or reset."
+    : `Up to box ${box}. ${RETIRED - box} more first-try pass${RETIRED - box === 1 ? "" : "es"} and it retires.`;
+  else if (S.passed && S.result.revealed) text = "Passed. Still box 0, because you saw the solution first.";
+  else if (S.passed) text = `Still box ${box}. Passed after a retry, so it stays put.`;
+  else if (S.revealed) text = "Back to box 0. Type it from memory once more to lock it in.";
+  else if (S.result) text = `Still box ${box}. Fix it and rerun; a pass now won't move it up, but it won't drop either.`;
+  else if (box >= RETIRED) text = "Retired. A pass keeps it retired; Show solution sends it back to box 0.";
+  else text = `Box ${box} of ${RETIRED}. Pass on the first try to move up. Three boxes and it retires.`;
+  $("#rail-box").textContent = text;
+
+  const info = $("#rail-info");
+  if (S.result && !S.result.passed) {
+    info.innerHTML = `<h2 class="eyebrow">Errors look like this</h2>
+      <div class="errbox">${esc(S.result.error || "KeyError: 'A'")}</div>
+      <p>Exceptions show in place of the output, so you see the real Python message.</p>`;
+  } else {
+    info.innerHTML = `<h2 class="eyebrow">How scoring works</h2>
+      <p class="lines">First-try pass: up one box.<br>Pass after a retry: stays put.<br>Show solution: back to box 0.</p>`;
+  }
+}
+
+function outputBlock(text, error, cls) {
+  let html = text ? `<pre class="out ${cls}">${esc(text)}</pre>` : "";
+  if (error) html += `<pre class="out fail err">${esc(error)}</pre>`;
+  return html || `<p class="none">(nothing printed)</p>`;
+}
+
+function renderResult() {
+  const el = $("#result");
+  const r = S.result;
+  if (S.oops) {
+    el.innerHTML = `<div class="result oops"><div class="banner"><span class="verdict">HOLD ON</span><span class="banner-msg">${esc(S.oops)}</span></div></div>`;
+  } else if (r) {
+    let msg;
+    if (r.passed) msg = r.firstTry ? "First try. Nice." : "Output matches.";
+    else if (r.error) msg = `Your code raised ${esc(r.error.split(":")[0])}.`;
+    else if (!r.output.trim()) msg = "Your code didn't print anything.";
+    else if (r.output.replace(/\s+/g, "") === r.expected.replace(/\s+/g, "")) msg = "Close: only whitespace differs.";
+    else msg = "Output doesn't match.";
+    el.innerHTML = `<div class="result ${r.passed ? "pass" : "miss"}">
+      <div class="banner"><span class="verdict">${r.passed ? "PASSED" : "NOT QUITE"}</span><span class="banner-msg">${msg}</span></div>
+      <div class="cols">
+        <div><div class="col-label">Your output</div>${outputBlock(r.output, r.error, r.passed ? "pass" : "fail")}</div>
+        <div><div class="col-label">Expected</div>${outputBlock(r.expected, null, "pass")}</div>
+      </div></div>`;
+  } else if (S.current && !S.solution) {
+    el.innerHTML = `<div class="placeholder">Run your code to see its output next to the expected output.</div>`;
+  } else {
+    el.innerHTML = "";
+  }
+}
+
+function renderProgress() {
+  $("#bars").innerHTML = categories().map((cat) => {
+    const cards = S.cards.filter((c) => c.cat === cat);
+    if (!cards.length) return "";
+    const n = [0, 0, 0, 0];
+    for (const c of cards) n[boxOf(c.id)]++;
+    const names = ["box 0", "box 1", "box 2", "retired"];
+    const segs = n.map((k, b) => (k ? `<i class="b${b}" style="flex:${k}" title="${names[b]}: ${k}"></i>` : "")).join("");
+    return `<div class="bar-row">
+      <div class="bar-top"><span class="bar-name">${esc(cat)}</span><span class="bar-count">${cards.length} cards</span></div>
+      <div class="bar" role="img" aria-label="${esc(cat)}: ${n.map((k, b) => `${k} ${names[b]}`).join(", ")}">${segs}</div>
+    </div>`;
+  }).join("");
+
+  const weak = weakest(S.cards);
+  $("#weak").innerHTML = weak.slice(0, 6).map((c) => {
+    const b = boxOf(c.id);
+    return `<li><button data-card="${esc(c.id)}" title="${esc(c.prompt)}">
+      <span class="t">${esc(c.prompt.replace(/`/g, ""))}</span><span class="bx${b === 0 ? " zero" : ""}">box ${b}</span></button></li>`;
+  }).join("") || `<li><p>Nothing left to drill. Every card is retired.</p></li>`;
+
+  const retired = S.cards.filter((c) => boxOf(c.id) >= RETIRED).length;
+  const box0 = S.cards.filter((c) => boxOf(c.id) === 0).length;
+  $("#drill-weak").disabled = !weak.length;
+  const rr = $("#review-retired");
+  rr.textContent = `Review retired (${retired})`;
+  rr.disabled = !retired;
+  $("#summary").textContent = `${retired} of ${S.cards.length} retired · ${box0} in box 0`;
+}
+
+// ---------- wiring ----------
+$("#run").addEventListener("click", primary);
+$("#reveal").addEventListener("click", reveal);
+$("#skip").addEventListener("click", skip);
+$("#drill-weak").addEventListener("click", startWeakest);
+$("#review-retired").addEventListener("click", startRetired);
+$("#reset").addEventListener("click", resetProgress);
+
+$("#chips").addEventListener("click", (e) => {
+  const btn = e.target.closest(".chip");
+  if (!btn || btn.dataset.cat === S.filter) return;
+  S.filter = btn.dataset.cat;
+  S.done = null;
+  if (S.session && S.session.kind === "weakest") S.session = null;
+  show(pick());
+});
+
+document.addEventListener("click", (e) => {
+  const act = e.target.closest("[data-act]");
+  if (act) {
+    const a = act.dataset.act;
+    if (a === "end") endSession();
+    else if (a === "keep") { S.done = null; nextCard(); }
+    else if (a === "progress") location.hash = "progress";
+    else if (a === "retired") startRetired();
+    else if (a === "all") { S.filter = "all"; show(pick()); }
+    return;
+  }
+  const row = e.target.closest("[data-card]");
+  if (row) {
+    S.session = null;
+    S.done = null;
+    S.filter = "all";
+    show(byId(row.dataset.card));
+    location.hash = "";
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (S.view !== "card" || !S.current) return;
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    primary();
+  }
+});
+
+async function route() {
+  S.view = location.hash === "#progress" ? "progress" : "card";
+  render();
+  if (S.view === "progress") {
+    try { await refresh(); } catch (e) { /* show what we have */ }
+    render();
+  } else if (S.current) {
+    ta.focus({ preventScroll: true });
+  }
+}
+window.addEventListener("hashchange", route);
+
+(async function init() {
+  updateGutter();
+  try {
+    await refresh();
+  } catch (e) {
+    S.oops = e.message;
+  }
+  S.current = pick();
+  if (S.current) S.lastId = S.current.id;
+  route();
+})();
+</script>
+</body>
+</html>

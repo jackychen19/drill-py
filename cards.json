@@ -1,0 +1,506 @@
+[
+  {
+    "id": "dict-items",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Print each key and value of d, one per line, formatted like `a: 1`.",
+    "setup": "d = {\"a\": 1, \"b\": 2}",
+    "solution": "for k, v in d.items():\n    print(f\"{k}: {v}\")",
+    "expected": "a: 1\nb: 2"
+  },
+  {
+    "id": "dict-keys",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Print each key of d on its own line.",
+    "setup": "d = {\"a\": 1, \"b\": 2}",
+    "solution": "for k in d:\n    print(k)",
+    "expected": "a\nb"
+  },
+  {
+    "id": "dict-values",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Print each value of d on its own line.",
+    "setup": "d = {\"a\": 1, \"b\": 2}",
+    "solution": "for v in d.values():\n    print(v)",
+    "expected": "1\n2"
+  },
+  {
+    "id": "dict-count-get",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Count how often each word appears in words using a plain dict and .get(), then print the dict.",
+    "setup": "words = [\"a\", \"b\", \"a\", \"c\", \"a\", \"b\"]",
+    "solution": "counts = {}\nfor w in words:\n    counts[w] = counts.get(w, 0) + 1\nprint(counts)",
+    "expected": "{'a': 3, 'b': 2, 'c': 1}"
+  },
+  {
+    "id": "dict-counter",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Use collections.Counter to print the single most common word and its count, as a list of one pair.",
+    "setup": "words = [\"a\", \"b\", \"a\", \"c\", \"a\", \"b\"]",
+    "solution": "from collections import Counter\nprint(Counter(words).most_common(1))",
+    "expected": "[('a', 3)]"
+  },
+  {
+    "id": "dict-group-setdefault",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Group the event ids by field into a dict of lists using setdefault, then print the dict.",
+    "setup": "events = [{\"id\": 1, \"field\": \"A\"}, {\"id\": 2, \"field\": \"B\"}, {\"id\": 3, \"field\": \"A\"}]",
+    "solution": "groups = {}\nfor e in events:\n    groups.setdefault(e[\"field\"], []).append(e[\"id\"])\nprint(groups)",
+    "expected": "{'A': [1, 3], 'B': [2]}"
+  },
+  {
+    "id": "dict-group-defaultdict",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Group the event ids by field using defaultdict(list), then print it as a normal dict.",
+    "setup": "events = [{\"id\": 1, \"field\": \"A\"}, {\"id\": 2, \"field\": \"B\"}, {\"id\": 3, \"field\": \"A\"}]",
+    "solution": "from collections import defaultdict\ngroups = defaultdict(list)\nfor e in events:\n    groups[e[\"field\"]].append(e[\"id\"])\nprint(dict(groups))",
+    "expected": "{'A': [1, 3], 'B': [2]}"
+  },
+  {
+    "id": "dict-read-field",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Print the field of the first event.",
+    "setup": "events = [{\"id\": 1, \"field\": \"A\"}, {\"id\": 2, \"field\": \"B\"}]",
+    "solution": "print(events[0][\"field\"])",
+    "expected": "A"
+  },
+  {
+    "id": "dict-in",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Print whether the key \"x\" is in d, then whether \"y\" is.",
+    "setup": "d = {\"x\": 1}",
+    "solution": "print(\"x\" in d)\nprint(\"y\" in d)",
+    "expected": "True\nFalse"
+  },
+  {
+    "id": "dict-get-default",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Print d[\"z\"], but fall back to 0 if the key is missing (no KeyError).",
+    "setup": "d = {\"x\": 1}",
+    "solution": "print(d.get(\"z\", 0))",
+    "expected": "0"
+  },
+  {
+    "id": "dict-delete",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Remove the key \"a\" from d, then print d.",
+    "setup": "d = {\"a\": 1, \"b\": 2}",
+    "solution": "del d[\"a\"]\nprint(d)",
+    "expected": "{'b': 2}"
+  },
+  {
+    "id": "dict-sort-by-value",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Print the (key, value) pairs of d as a list sorted by value, highest first.",
+    "setup": "d = {\"a\": 3, \"b\": 1, \"c\": 2}",
+    "solution": "print(sorted(d.items(), key=lambda kv: kv[1], reverse=True))",
+    "expected": "[('a', 3), ('c', 2), ('b', 1)]"
+  },
+  {
+    "id": "dict-zip",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Build a dict mapping each name to its age from the two lists, then print it.",
+    "setup": "names = [\"Ava\", \"Ben\"]\nages = [10, 12]",
+    "solution": "print(dict(zip(names, ages)))",
+    "expected": "{'Ava': 10, 'Ben': 12}"
+  },
+  {
+    "id": "dict-comp",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Use a dict comprehension to build {1: 1, 2: 4, 3: 9} and print it.",
+    "setup": "",
+    "solution": "print({n: n * n for n in range(1, 4)})",
+    "expected": "{1: 1, 2: 4, 3: 9}"
+  },
+  {
+    "id": "dict-max-key",
+    "cat": "dict",
+    "lang": "python",
+    "prompt": "Print the key of d that has the largest value.",
+    "setup": "d = {\"a\": 3, \"b\": 9, \"c\": 2}",
+    "solution": "print(max(d, key=d.get))",
+    "expected": "b"
+  },
+  {
+    "id": "list-len",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print how many items are in items.",
+    "setup": "items = [\"x\", \"y\", \"z\"]",
+    "solution": "print(len(items))",
+    "expected": "3"
+  },
+  {
+    "id": "list-count",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print how many times 2 appears in nums.",
+    "setup": "nums = [1, 2, 2, 3, 2]",
+    "solution": "print(nums.count(2))",
+    "expected": "3"
+  },
+  {
+    "id": "list-comp-square",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Using a list comprehension, print the square of each number in nums as a list.",
+    "setup": "nums = [1, 2, 3, 4]",
+    "solution": "print([n * n for n in nums])",
+    "expected": "[1, 4, 9, 16]"
+  },
+  {
+    "id": "list-comp-filter",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print only the even numbers in nums, as a list.",
+    "setup": "nums = [1, 2, 3, 4, 5, 6]",
+    "solution": "print([n for n in nums if n % 2 == 0])",
+    "expected": "[2, 4, 6]"
+  },
+  {
+    "id": "list-sort-key",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Sort events by \"start\", earliest first, and print the ids in that order as a list.",
+    "setup": "events = [{\"id\": 1, \"start\": 5}, {\"id\": 2, \"start\": 1}, {\"id\": 3, \"start\": 3}]",
+    "solution": "ordered = sorted(events, key=lambda e: e[\"start\"])\nprint([e[\"id\"] for e in ordered])",
+    "expected": "[2, 3, 1]"
+  },
+  {
+    "id": "list-sorted-copy",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Make a sorted copy of nums without changing nums, then print the copy and then nums.",
+    "setup": "nums = [3, 1, 2]",
+    "solution": "ordered = sorted(nums)\nprint(ordered)\nprint(nums)",
+    "expected": "[1, 2, 3]\n[3, 1, 2]"
+  },
+  {
+    "id": "list-sort-reverse",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Sort nums in place from largest to smallest, then print it.",
+    "setup": "nums = [3, 1, 2]",
+    "solution": "nums.sort(reverse=True)\nprint(nums)",
+    "expected": "[3, 2, 1]"
+  },
+  {
+    "id": "list-extend",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Add every item of b onto the end of a as separate items, then print a.",
+    "setup": "a = [1, 2]\nb = [3, 4]",
+    "solution": "a.extend(b)\nprint(a)",
+    "expected": "[1, 2, 3, 4]"
+  },
+  {
+    "id": "list-append-nested",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Add b onto the end of a as ONE nested item, then print a.",
+    "setup": "a = [1, 2]\nb = [3, 4]",
+    "solution": "a.append(b)\nprint(a)",
+    "expected": "[1, 2, [3, 4]]"
+  },
+  {
+    "id": "list-grid",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Build a 3x3 grid of zeros where every row is its own list, set the center cell to 1, and print the grid.",
+    "setup": "",
+    "solution": "grid = [[0] * 3 for _ in range(3)]\ngrid[1][1] = 1\nprint(grid)",
+    "expected": "[[0, 0, 0], [0, 1, 0], [0, 0, 0]]"
+  },
+  {
+    "id": "list-slice-last",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print the last two items of nums.",
+    "setup": "nums = [1, 2, 3, 4, 5]",
+    "solution": "print(nums[-2:])",
+    "expected": "[4, 5]"
+  },
+  {
+    "id": "list-slice-step",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print every other item of nums, starting with the first.",
+    "setup": "nums = [1, 2, 3, 4, 5]",
+    "solution": "print(nums[::2])",
+    "expected": "[1, 3, 5]"
+  },
+  {
+    "id": "list-reverse",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print nums reversed, without changing nums.",
+    "setup": "nums = [1, 2, 3]",
+    "solution": "print(nums[::-1])",
+    "expected": "[3, 2, 1]"
+  },
+  {
+    "id": "list-enumerate",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print each item with its index, formatted like `0 a`.",
+    "setup": "items = [\"a\", \"b\", \"c\"]",
+    "solution": "for i, x in enumerate(items):\n    print(i, x)",
+    "expected": "0 a\n1 b\n2 c"
+  },
+  {
+    "id": "list-zip",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Walk xs and ys together and print each pair, formatted like `1 a`.",
+    "setup": "xs = [1, 2, 3]\nys = [\"a\", \"b\", \"c\"]",
+    "solution": "for x, y in zip(xs, ys):\n    print(x, y)",
+    "expected": "1 a\n2 b\n3 c"
+  },
+  {
+    "id": "list-dedupe-order",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Remove duplicates from nums but keep the original order, then print the list.",
+    "setup": "nums = [3, 1, 3, 2, 1]",
+    "solution": "print(list(dict.fromkeys(nums)))",
+    "expected": "[3, 1, 2]"
+  },
+  {
+    "id": "list-flatten",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Flatten grid (a list of lists) into one list and print it.",
+    "setup": "grid = [[1, 2], [3], [4, 5]]",
+    "solution": "print([x for row in grid for x in row])",
+    "expected": "[1, 2, 3, 4, 5]"
+  },
+  {
+    "id": "list-minmaxsum",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print the max, min, and sum of nums on one line, separated by spaces.",
+    "setup": "nums = [4, 1, 7]",
+    "solution": "print(max(nums), min(nums), sum(nums))",
+    "expected": "7 1 12"
+  },
+  {
+    "id": "list-insert",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Insert 99 at the front of nums, then print nums.",
+    "setup": "nums = [1, 2]",
+    "solution": "nums.insert(0, 99)\nprint(nums)",
+    "expected": "[99, 1, 2]"
+  },
+  {
+    "id": "list-any-all",
+    "cat": "list",
+    "lang": "python",
+    "prompt": "Print whether any number in nums is greater than 3, then whether all numbers are positive.",
+    "setup": "nums = [1, 2, 5]",
+    "solution": "print(any(n > 3 for n in nums))\nprint(all(n > 0 for n in nums))",
+    "expected": "True\nTrue"
+  },
+  {
+    "id": "set-unique",
+    "cat": "set",
+    "lang": "python",
+    "prompt": "Print the unique values in nums as a sorted list.",
+    "setup": "nums = [3, 1, 3, 2, 1]",
+    "solution": "print(sorted(set(nums)))",
+    "expected": "[1, 2, 3]"
+  },
+  {
+    "id": "set-add-in",
+    "cat": "set",
+    "lang": "python",
+    "prompt": "Add 5 to the set s, then print whether 5 is in s.",
+    "setup": "s = {1, 2}",
+    "solution": "s.add(5)\nprint(5 in s)",
+    "expected": "True"
+  },
+  {
+    "id": "set-intersect",
+    "cat": "set",
+    "lang": "python",
+    "prompt": "Print the values that are in both a and b, as a sorted list.",
+    "setup": "a = {1, 2, 3}\nb = {2, 3, 4}",
+    "solution": "print(sorted(a & b))",
+    "expected": "[2, 3]"
+  },
+  {
+    "id": "set-diff",
+    "cat": "set",
+    "lang": "python",
+    "prompt": "Print the values that are in a but not in b, as a sorted list.",
+    "setup": "a = {1, 2, 3}\nb = {2, 3, 4}",
+    "solution": "print(sorted(a - b))",
+    "expected": "[1]"
+  },
+  {
+    "id": "set-seen-dup",
+    "cat": "set",
+    "lang": "python",
+    "prompt": "Using a set, find and print the first number in nums that appears a second time.",
+    "setup": "nums = [3, 1, 4, 1, 5]",
+    "solution": "seen = set()\nfor n in nums:\n    if n in seen:\n        print(n)\n        break\n    seen.add(n)",
+    "expected": "1"
+  },
+  {
+    "id": "str-split",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Split s into words and print the list.",
+    "setup": "s = \"the quick fox\"",
+    "solution": "print(s.split())",
+    "expected": "['the', 'quick', 'fox']"
+  },
+  {
+    "id": "str-join",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Join words with dashes and print the result.",
+    "setup": "words = [\"a\", \"b\", \"c\"]",
+    "solution": "print(\"-\".join(words))",
+    "expected": "a-b-c"
+  },
+  {
+    "id": "str-clean",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Strip whitespace from both ends of s, lowercase it, and print it.",
+    "setup": "s = \"  Hello World  \"",
+    "solution": "print(s.strip().lower())",
+    "expected": "hello world"
+  },
+  {
+    "id": "str-reverse",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Print s reversed.",
+    "setup": "s = \"abc\"",
+    "solution": "print(s[::-1])",
+    "expected": "cba"
+  },
+  {
+    "id": "str-fstring",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Using an f-string, print `Ava is 10` from the two variables.",
+    "setup": "name = \"Ava\"\nage = 10",
+    "solution": "print(f\"{name} is {age}\")",
+    "expected": "Ava is 10"
+  },
+  {
+    "id": "str-startswith",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Print whether s starts with \"ab\".",
+    "setup": "s = \"abc\"",
+    "solution": "print(s.startswith(\"ab\"))",
+    "expected": "True"
+  },
+  {
+    "id": "str-replace",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Replace every \"-\" in s with a space and print it.",
+    "setup": "s = \"a-b-c\"",
+    "solution": "print(s.replace(\"-\", \" \"))",
+    "expected": "a b c"
+  },
+  {
+    "id": "str-char-count",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Print how many times each character appears in s, as a dict.",
+    "setup": "s = \"abca\"",
+    "solution": "from collections import Counter\nprint(dict(Counter(s)))",
+    "expected": "{'a': 2, 'b': 1, 'c': 1}"
+  },
+  {
+    "id": "num-divmod",
+    "cat": "misc",
+    "lang": "python",
+    "prompt": "Print 17 divided by 5 using integer division, then the remainder.",
+    "setup": "",
+    "solution": "print(17 // 5)\nprint(17 % 5)",
+    "expected": "3\n2"
+  },
+  {
+    "id": "num-clamp",
+    "cat": "misc",
+    "lang": "python",
+    "prompt": "Clamp x so it stays between lo and hi, then print the result.",
+    "setup": "x = 42\nlo = 10\nhi = 30",
+    "solution": "print(max(lo, min(hi, x)))",
+    "expected": "30"
+  },
+  {
+    "id": "misc-swap",
+    "cat": "misc",
+    "lang": "python",
+    "prompt": "Swap a and b in a single line, then print a and b on one line.",
+    "setup": "a = 1\nb = 2",
+    "solution": "a, b = b, a\nprint(a, b)",
+    "expected": "2 1"
+  },
+  {
+    "id": "misc-range-step",
+    "cat": "misc",
+    "lang": "python",
+    "prompt": "Print 0, 3, 6, 9, each on its own line, using range.",
+    "setup": "",
+    "solution": "for n in range(0, 10, 3):\n    print(n)",
+    "expected": "0\n3\n6\n9"
+  },
+  {
+    "id": "misc-deque",
+    "cat": "misc",
+    "lang": "python",
+    "prompt": "Pop the front item off q and print it, then print what is left as a list.",
+    "setup": "from collections import deque\nq = deque([1, 2, 3])",
+    "solution": "print(q.popleft())\nprint(list(q))",
+    "expected": "1\n[2, 3]"
+  },
+  {
+    "id": "misc-heap",
+    "cat": "misc",
+    "lang": "python",
+    "prompt": "Push 5, 1, and 3 onto a min-heap with heapq, then print the smallest.",
+    "setup": "",
+    "solution": "import heapq\nh = []\nfor n in [5, 1, 3]:\n    heapq.heappush(h, n)\nprint(heapq.heappop(h))",
+    "expected": "1"
+  },
+  {
+    "id": "misc-overlap-func",
+    "cat": "misc",
+    "lang": "python",
+    "prompt": "Write overlaps(a, b) for [start, end] intervals: True if they overlap, False if they only touch or are apart. Print overlaps([1, 5], [3, 7]) and then overlaps([1, 2], [2, 3]).",
+    "setup": "",
+    "solution": "def overlaps(a, b):\n    return a[0] < b[1] and b[0] < a[1]\n\nprint(overlaps([1, 5], [3, 7]))\nprint(overlaps([1, 2], [2, 3]))",
+    "expected": "True\nFalse"
+  },
+  {
+    "id": "misc-tree-count",
+    "cat": "misc",
+    "lang": "python",
+    "prompt": "Write count_nodes(node) that returns 1 plus the count of all nodes under it (each node has a \"children\" list). Print count_nodes(tree).",
+    "setup": "tree = {\"children\": [{\"children\": []}, {\"children\": [{\"children\": []}]}]}",
+    "solution": "def count_nodes(node):\n    return 1 + sum(count_nodes(c) for c in node[\"children\"])\n\nprint(count_nodes(tree))",
+    "expected": "4"
+  }
+]
