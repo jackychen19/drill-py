@@ -1,0 +1,11 @@
+[
+  {
+    "id": "string-dict-mapping-character",
+    "cat": "string",
+    "lang": "python",
+    "prompt": "Print a dict mapping each character in s to how many times it appears, using a plain dict and .get()",
+    "setup": "str = 'racecar'",
+    "solution": "count = {}\n\nfor c in str:\n    count[c] = count.get(c, 0) + 1\n    \nprint(count)",
+    "expected": "{'r': 2, 'a': 2, 'c': 2, 'e': 1}"
+  }
+]
