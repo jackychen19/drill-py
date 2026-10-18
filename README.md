@@ -55,13 +55,22 @@ Card ids only need to be unique within a deck.
 
 Open **Deck** (top right of the drill screen) to see every card. You can search prompts, ids and setup code, and filter by category. Each row shows the card's box and has **Drill** (practice that card now) and **Edit**.
 
-- **New card** / **Edit** opens a form with the prompt, category, id, an optional **source** (where the problem came from, e.g. `LC 49 · Group Anagrams`, shown on the card), setup and reference solution. The code fields use the same editor as drilling. A live preview shows how the card will look.
+- **New card** / **Edit** opens a form with the prompt, category, id, optional **tags** (see below), setup and reference solution. The code fields use the same editor as drilling. A live preview shows how the card will look.
 - **Test run** (`⌘ Enter`) runs the solution and shows what it prints.
 - **Save card** (`⌘ S`) runs the solution again and refuses to save if it raises an exception or prints nothing. What it prints becomes the card's expected output, so editing a solution can never leave a stale `expected` behind.
 - Changing a card's id carries its progress over to the new id. **Delete** removes the card and its progress after a confirm.
 - The form warns before you leave with unsaved changes.
 
 Saves go straight into the deck's file, keeping card order and formatting, and take effect without a restart. If that file has a JSON error from a hand edit, the app won't overwrite it; fix the file first.
+
+## Tags
+
+Cards are meant to drill a *technique* (a bucket array, inverting a dict, a reverse index loop), and the same technique shows up in many LeetCode problems. So the category describes the technique family, and **tags** record where you've seen it, like `LC 347 · Top K Frequent Elements`. A card can have as many tags as you like (up to 20, 60 characters each).
+
+- In the card form, type a tag and press **Enter** to add it; **Backspace** on an empty box removes the last one, and the **×** on a chip removes that one. Commas are fine inside a tag, so `Pow(x, n)` stays one tag.
+- Tags show next to the box number while you drill, and on each row of the Deck page.
+- On the Deck page, click a tag on any row, or use the **tag menu**, to see only the cards that use it. Search matches tags too.
+- Older cards with a single `source` string are read as one tag, and the next time you save such a card in the app it's written as `tags`.
 
 ## Add a card by hand
 
@@ -72,13 +81,13 @@ You can also edit a deck file in `decks/` directly. Append an object to the list
   "id": "dict-pop-default",
   "cat": "dict",
   "prompt": "Remove `\"z\"` from d without a KeyError if it's missing, then print d.",
-  "source": "LC 1 · example",
+  "tags": ["LC 1 · Two Sum", "LC 560 · Subarray Sum Equals K"],
   "setup": "d = {\"a\": 1}",
   "solution": "d.pop(\"z\", None)\nprint(d)"
 }
 ```
 
-- `id`, `cat`, `prompt` and `solution` are required. `setup` is optional; it runs before your code and is shown as **Given**. `source` is optional free text.
+- `id`, `cat`, `prompt` and `solution` are required. `setup` is optional; it runs before your code and is shown as **Given**. `tags` is an optional list of strings.
 - `expected` is optional. If you leave it out, the server runs `solution` once and uses what it prints.
 - `lang` defaults to `"python"`.
 - Wrap text in backticks in `prompt` to show it as code.

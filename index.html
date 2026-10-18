@@ -389,7 +389,41 @@ a.btn { text-decoration: none; }
 .deck-admin { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .side .deck-admin .btn { margin-top: 0; width: auto; flex: 1 1 auto; }
 .opt { text-transform: none; letter-spacing: 0; color: var(--dim); margin-left: 6px; }
-.src { color: var(--box2); }
+.tags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tagchip {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px;
+  border: 0; border-radius: 6px;
+  background: rgba(157, 184, 236, .12);
+  color: var(--box2);
+  font: 12.5px/1.3 var(--mono);
+  white-space: nowrap;
+  max-width: 100%;
+}
+button.tagchip { cursor: pointer; }
+button.tagchip::after { content: ""; position: absolute; inset: -8px -2px; } /* bigger tap target */
+button.tagchip:hover { background: rgba(157, 184, 236, .22); color: #fff; }
+.tagchip .x {
+  margin: -10px -6px -10px 0; padding: 10px 6px;
+  background: none; border: 0; color: inherit; cursor: pointer;
+  font: 15px/1 var(--sans); opacity: .7;
+}
+.tagchip .x:hover { opacity: 1; color: var(--fail); }
+.taginput {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  min-height: 44px; padding: 6px 10px;
+  background: var(--well); border: 1px solid var(--border); border-radius: var(--r-btn);
+  transition: border-color .15s;
+}
+.taginput:focus-within { border-color: rgba(122, 162, 255, .6); }
+.taginput input {
+  flex: 1 1 180px; min-width: 120px; min-height: 30px; padding: 0;
+  background: none; border: 0; outline: 0;
+  color: var(--text); font: 15px/1.4 var(--sans);
+}
+.taginput input::placeholder { color: var(--dim); }
+.tool-row select.input { width: auto; min-width: 150px; max-width: 100%; }
 .deck-empty { padding: 28px 24px; color: var(--muted); border-top: 1px solid var(--border-soft); margin: 0; }
 .flash { padding: 14px 20px; border-radius: var(--r-panel); background: #142A1E; border: 1px solid rgba(134, 239, 172, .3); font-size: 15px; }
 .flash.warn { background: #2C2412; border-color: rgba(244, 183, 64, .4); margin-bottom: 20px; }
@@ -442,6 +476,8 @@ dialog.modal::backdrop { background: rgba(5, 7, 10, .65); }
   .card { padding: 22px 20px 22px; }
   .prompt { font-size: 22px; }
   .ed-head .hint { display: none; }
+  .meta .tags { flex-basis: 100%; }
+  .meta .tags .sep { display: none; }
   .cols { grid-template-columns: 1fr; }
   .cols > div + div { border-left: 0; border-top: 1px solid var(--border-soft); }
   .btn { padding: 0 18px; }
@@ -476,7 +512,7 @@ dialog.modal::backdrop { background: rgba(5, 7, 10, .65); }
           <div class="meta">
             <span class="tag" id="c-cat"></span>
             <span id="c-num"></span><span class="sep">·</span><span id="c-box"></span>
-            <span id="c-src" hidden></span>
+            <span class="tags" id="c-tags" hidden></span>
             <span id="c-sess" hidden></span>
           </div>
           <h1 class="prompt" id="c-prompt"></h1>
@@ -567,7 +603,10 @@ dialog.modal::backdrop { background: rgba(5, 7, 10, .65); }
         <div class="deck-tools">
           <input class="input" id="deck-q" type="search" placeholder="Search prompts, ids and setup code" aria-label="Search cards" autocomplete="off" spellcheck="false">
           <div class="chips" id="deck-chips" aria-label="Category filter"></div>
-          <div class="tool-row"><button class="linkbtn" id="deck-selall">Select all shown</button><span>Select cards to copy them into another deck.</span></div>
+          <div class="tool-row">
+            <select class="input" id="deck-tag" aria-label="Filter by tag" hidden></select>
+            <button class="linkbtn" id="deck-selall">Select all shown</button><span>Select cards to copy them into another deck.</span>
+          </div>
         </div>
         <div class="selbar" id="deck-selbar" hidden></div>
         <ul class="deck" id="deck-list"></ul>
@@ -612,11 +651,14 @@ dialog.modal::backdrop { background: rgba(5, 7, 10, .65); }
             <input class="input mono" id="f-id" autocomplete="off" spellcheck="false" placeholder="dict-pop-default">
           </label>
         </div>
-        <label class="field">
-          <span class="label">Source<span class="opt">optional</span></span>
-          <input class="input" id="f-source" autocomplete="off" placeholder="LC 49 · Group Anagrams">
-          <span class="hint">Where this came from, like the LeetCode problem. Shown on the card.</span>
-        </label>
+        <div class="field">
+          <span class="label">Tags<span class="opt">optional</span></span>
+          <div class="taginput" id="f-tags-box">
+            <span class="tags" id="f-tags-list"></span>
+            <input id="f-tag-input" maxlength="60" autocomplete="off" spellcheck="false" aria-label="Add a tag" placeholder="LC 347 · Top K Frequent Elements">
+          </div>
+          <span class="hint">Problems that use this technique. Press Enter to add each one; Backspace removes the last.</span>
+        </div>
       </section>
 
       <section class="editor">
@@ -647,7 +689,8 @@ dialog.modal::backdrop { background: rgba(5, 7, 10, .65); }
     <aside class="rail">
       <section class="panel side preview">
         <h2 class="eyebrow">Preview</h2>
-        <div class="meta"><span class="tag" id="p-cat"></span><span id="p-id"></span><span class="src" id="p-src"></span></div>
+        <div class="meta"><span class="tag" id="p-cat"></span><span id="p-id"></span></div>
+        <div class="tags" id="p-tags"></div>
         <p class="prompt" id="p-prompt"></p>
         <div class="given" id="p-given"><div class="label">Given</div><pre id="p-setup"></pre></div>
       </section>
@@ -700,13 +743,14 @@ const S = {
   deckName: null,    // active deck; the server remembers it between visits
   decks: [],         // [{name, count}]
   stale: false,      // server.py is older than this page
-  deck: { q: "", cat: "all", sel: new Set() },
+  deck: { q: "", cat: "all", tag: "all", sel: new Set() },
   flash: null,      // message shown once on the deck page
   form: null,       // card form state while on #deck/new or #deck/edit/<id>
 };
 
 // ---------- helpers ----------
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const tagChips = (tags) => tags.map((t) => `<span class="tagchip">${esc(t)}</span>`).join("");
 const fmtPrompt = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
 const boxOf = (id) => (S.progress[id] ? S.progress[id].box : 0);
 const missesOf = (id) => (S.progress[id] ? S.progress[id].misses : 0);
@@ -1119,9 +1163,9 @@ function renderCard() {
   $("#c-cat").textContent = c.cat;
   $("#c-num").textContent = `card ${S.cards.findIndex((x) => x.id === c.id) + 1} of ${S.cards.length}`;
   $("#c-box").textContent = box >= RETIRED ? "retired" : `box ${box}`;
-  const src = $("#c-src");
-  src.hidden = !c.source;
-  if (c.source) src.innerHTML = `<span class="sep">·</span> <span class="src">${esc(c.source)}</span>`;
+  const tags = $("#c-tags");
+  tags.hidden = !c.tags.length;
+  tags.innerHTML = c.tags.length ? `<span class="sep">·</span>${tagChips(c.tags)}` : "";
   const sess = $("#c-sess");
   sess.hidden = !S.session;
   if (S.session) {
@@ -1304,16 +1348,26 @@ function renderDeck() {
     return `<button class="chip" data-cat="${esc(c)}" aria-pressed="${S.deck.cat === c}">${c === "all" ? "All" : esc(c)}<span class="n">${n}</span></button>`;
   }).join("");
 
+  const tagCounts = new Map();
+  for (const c of S.cards) for (const t of c.tags) tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+  if (S.deck.tag !== "all" && !tagCounts.has(S.deck.tag)) S.deck.tag = "all";
+  const tagSel = $("#deck-tag");
+  tagSel.hidden = !tagCounts.size;
+  tagSel.innerHTML = `<option value="all">All tags</option>` + [...tagCounts].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })).map(([t, n]) =>
+    `<option value="${esc(t)}"${t === S.deck.tag ? " selected" : ""}>${esc(t)} (${n})</option>`).join("");
+
   const q = S.deck.q.trim().toLowerCase();
   const rows = S.cards.filter((c) =>
     (S.deck.cat === "all" || c.cat === S.deck.cat) &&
-    (!q || `${c.id}\n${c.prompt}\n${c.source}\n${c.setup}`.toLowerCase().includes(q)));
+    (S.deck.tag === "all" || c.tags.includes(S.deck.tag)) &&
+    (!q || `${c.id}\n${c.prompt}\n${c.tags.join("\n")}\n${c.setup}`.toLowerCase().includes(q)));
   S.deck.shown = rows.map((c) => c.id);
   $("#deck-list").innerHTML = rows.map((c) => `
     <li class="deck-row${S.deck.sel.has(c.id) ? " sel" : ""}">
       <label class="pick"><input type="checkbox" data-sel="${esc(c.id)}"${S.deck.sel.has(c.id) ? " checked" : ""}><span class="sr-only">Select ${esc(c.id)}</span></label>
       <div>
-        <div class="deck-meta"><span class="tag">${esc(c.cat)}</span><span>${esc(c.id)}</span>${c.source ? `<span class="src">${esc(c.source)}</span>` : ""}</div>
+        <div class="deck-meta"><span class="tag">${esc(c.cat)}</span><span>${esc(c.id)}</span></div>
+        ${c.tags.length ? `<div class="tags" style="margin-top:8px">${c.tags.map((t) => `<button class="tagchip" data-tag="${esc(t)}" title="Show only cards tagged ${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}
         <div class="deck-prompt">${fmtPrompt(c.prompt)}</div>
       </div>
       ${boxBadge(c.id)}
@@ -1349,6 +1403,7 @@ function renderSelbar() {
 function resetDrillState() {
   Object.assign(S, { filter: "all", session: null, done: null, lastId: null, current: null, flash: null });
   S.deck.cat = "all";
+  S.deck.tag = "all";
   S.deck.q = "";
   S.deck.sel.clear();
   $("#deck-q").value = "";
@@ -1468,7 +1523,7 @@ async function openForm(id) {
   if (S.form && S.form.key === key) return render();
   S.form = { key, originalId: id, dirty: false, idTouched: id !== null, result: null, busy: false, loading: id !== null };
   try { await refresh(); } catch (e) { /* use what we have */ }
-  let card = { id: "", cat: S.filter !== "all" ? S.filter : "", prompt: "", source: "", setup: "", solution: "" };
+  let card = { id: "", cat: S.filter !== "all" ? S.filter : "", prompt: "", tags: [], setup: "", solution: "" };
   if (id !== null) {
     try {
       card = await api(`/api/cards/${encodeURIComponent(id)}?deck=${encodeURIComponent(S.deckName)}`);
@@ -1483,11 +1538,39 @@ async function openForm(id) {
   $("#f-prompt").value = card.prompt;
   $("#f-cat").value = card.cat;
   $("#f-id").value = card.id;
-  $("#f-source").value = card.source || "";
+  S.form.tags = [...(card.tags || [])];
+  $("#f-tag-input").value = "";
   setupEd.set(card.setup);
   solEd.set(card.solution);
   render();
   $(id === null ? "#f-prompt" : "#f-solution").focus({ preventScroll: true });
+}
+
+// Tags already added as chips, plus any text still sitting in the tag box.
+function currentTags() {
+  const pending = $("#f-tag-input").value.replace(/\s+/g, " ").trim();
+  const tags = [...((S.form && S.form.tags) || [])];
+  if (pending && !tags.some((t) => t.toLowerCase() === pending.toLowerCase())) tags.push(pending);
+  return tags;
+}
+
+function addTag() {
+  const input = $("#f-tag-input");
+  const tag = input.value.replace(/\s+/g, " ").trim();
+  input.value = "";
+  if (S.form && tag && !S.form.tags.some((t) => t.toLowerCase() === tag.toLowerCase())) {
+    S.form.tags.push(tag);
+    S.form.dirty = true;
+  }
+  renderTagInput();
+  renderPreview();
+}
+
+function renderTagInput() {
+  const list = $("#f-tags-list");
+  const tags = (S.form && S.form.tags) || [];
+  list.innerHTML = tags.map((t, i) =>
+    `<span class="tagchip">${esc(t)}<button type="button" class="x" data-rm-tag="${i}" aria-label="Remove tag ${esc(t)}">×</button></span>`).join("");
 }
 
 function formFields() {
@@ -1495,7 +1578,7 @@ function formFields() {
     id: $("#f-id").value.trim(),
     cat: $("#f-cat").value.trim().toLowerCase(),
     prompt: $("#f-prompt").value.trim(),
-    source: $("#f-source").value.trim(),
+    tags: currentTags(),
     setup: $("#f-setup").value,
     solution: $("#f-solution").value,
   };
@@ -1512,6 +1595,7 @@ function renderForm() {
   $("#f-test-kbd").textContent = IS_MAC ? "⌘ Enter" : "Ctrl Enter";
   for (const b of ["#f-save", "#f-test", "#f-delete"]) $(b).disabled = !!f.busy || f.loading;
   $("#cat-list").innerHTML = [...new Set([...categories(), ...CATS])].map((c) => `<option value="${esc(c)}">`).join("");
+  renderTagInput();
   renderPreview();
   renderFormResult();
 }
@@ -1520,7 +1604,7 @@ function renderPreview() {
   const f = formFields();
   $("#p-cat").textContent = f.cat || "category";
   $("#p-id").textContent = f.id;
-  $("#p-src").textContent = f.source;
+  $("#p-tags").innerHTML = tagChips(f.tags);
   $("#p-prompt").innerHTML = f.prompt ? fmtPrompt(f.prompt) : `<span class="empty">Your prompt shows up here.</span>`;
   $("#p-given").hidden = !f.setup.trim();
   $("#p-setup").textContent = f.setup.replace(/^\n+|\n+$/g, "");
@@ -1655,6 +1739,8 @@ document.addEventListener("click", (e) => {
     else if (a === "deck") location.hash = "deck";
     return;
   }
+  const tagBtn = e.target.closest("[data-tag]");
+  if (tagBtn) { S.deck.tag = tagBtn.dataset.tag; return renderDeck(); }
   const deckBtn = e.target.closest("[data-deck]");
   if (deckBtn) return switchDeck(deckBtn.dataset.deck);
   const row = e.target.closest("[data-card]");
@@ -1688,7 +1774,7 @@ $("#deck-chips").addEventListener("click", (e) => {
   S.deck.cat = btn.dataset.cat;
   renderDeck();
 });
-for (const id of ["#f-prompt", "#f-cat", "#f-id", "#f-source", "#f-setup", "#f-solution"]) {
+for (const id of ["#f-prompt", "#f-cat", "#f-id", "#f-tag-input", "#f-setup", "#f-solution"]) {
   $(id).addEventListener("input", (e) => {
     if (!S.form) return;
     S.form.dirty = true;
@@ -1699,6 +1785,29 @@ for (const id of ["#f-prompt", "#f-cat", "#f-id", "#f-source", "#f-setup", "#f-s
     renderPreview();
   });
 }
+$("#f-tag-input").addEventListener("keydown", (e) => {
+  if (e.isComposing) return;
+  if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    addTag();
+  } else if (e.key === "Backspace" && !e.target.value && S.form && S.form.tags.length) {
+    S.form.tags.pop();
+    S.form.dirty = true;
+    renderTagInput();
+    renderPreview();
+  }
+});
+$("#f-tag-input").addEventListener("blur", () => { if ($("#f-tag-input").value.trim()) addTag(); });
+$("#f-tags-list").addEventListener("click", (e) => {
+  const rm = e.target.closest("[data-rm-tag]");
+  if (!rm || !S.form) return;
+  S.form.tags.splice(Number(rm.dataset.rmTag), 1);
+  S.form.dirty = true;
+  renderTagInput();
+  renderPreview();
+  $("#f-tag-input").focus();
+});
+$("#deck-tag").addEventListener("change", (e) => { S.deck.tag = e.target.value; renderDeck(); });
 $("#deck-select").addEventListener("change", (e) => switchDeck(e.target.value));
 $("#deck-new").addEventListener("click", newDeck);
 $("#deck-rename").addEventListener("click", renameDeck);

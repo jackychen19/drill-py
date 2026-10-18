@@ -43,7 +43,9 @@ MAX_BODY = 256 * 1024
 RETIRED = 3  # box 3 = retired
 ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 DECK_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,39}")  # also the file name, so no dots or slashes
-PUBLIC_FIELDS = ("id", "cat", "lang", "prompt", "source", "setup")
+PUBLIC_FIELDS = ("id", "cat", "lang", "prompt", "tags", "setup")
+MAX_TAGS = 20
+MAX_TAG_LEN = 60
 
 ERR_MARK = "__DRILL_ERROR__"
 
@@ -116,13 +118,28 @@ def _write_json(path, obj):
     os.replace(tmp, path)
 
 
+def clean_tags(value, legacy=None):
+    """Tidy a tags list: collapse whitespace, drop blanks and case-insensitive repeats.
+    `legacy` is the old single "source" string, kept as the first tag."""
+    items = ([legacy] if isinstance(legacy, str) else []) + (list(value) if isinstance(value, list) else [])
+    tags, seen = [], set()
+    for t in items:
+        if not isinstance(t, str):
+            continue
+        t = " ".join(t.split())
+        if t and t.lower() not in seen:
+            seen.add(t.lower())
+            tags.append(t)
+    return tags
+
+
 def build_card(fields, expected, lang="python", extras=None):
     """A card object in the on-disk key order. Empty optional fields are left out."""
     card = {"id": fields["id"], "cat": fields["cat"], "lang": lang or "python", "prompt": fields["prompt"]}
-    if fields.get("source"):
-        card["source"] = fields["source"]
+    if fields.get("tags"):
+        card["tags"] = list(fields["tags"])
     card.update(setup=fields.get("setup", ""), solution=fields["solution"], expected=expected)
-    card.update({k: v for k, v in (extras or {}).items() if k not in card and k != "source"})
+    card.update({k: v for k, v in (extras or {}).items() if k not in card and k not in ("source", "tags")})
     return card
 
 
@@ -175,7 +192,7 @@ class Cards:
             "cat": c["cat"],
             "lang": c.get("lang") or "python",
             "prompt": c["prompt"],
-            "source": c.get("source") if isinstance(c.get("source"), str) else "",
+            "tags": clean_tags(c.get("tags"), c.get("source")),  # "source" is the old single-label field
             "setup": c.get("setup") or "",
             "solution": c["solution"],
             "expected": c.get("expected"),
@@ -639,13 +656,20 @@ class Handler(BaseHTTPRequestHandler):
         deck, cards = self._deck(body.get("deck"))
         if not cards:
             return
-        fields = {k: raw.get(k, "") for k in ("id", "cat", "prompt", "source", "setup", "solution")}
+        fields = {k: raw.get(k, "") for k in ("id", "cat", "prompt", "setup", "solution")}
         if not all(isinstance(v, str) for v in fields.values()):
             return self._json(400, {"error": "card fields must be strings"})
+        raw_tags = raw.get("tags", [])
+        if not isinstance(raw_tags, list) or not all(isinstance(t, str) for t in raw_tags):
+            return self._json(400, {"error": "tags must be a list of strings"})
+        fields["tags"] = clean_tags(raw_tags)
+        if len(fields["tags"]) > MAX_TAGS:
+            return self._json(422, {"error": f"At most {MAX_TAGS} tags per card."})
+        if any(len(t) > MAX_TAG_LEN for t in fields["tags"]):
+            return self._json(422, {"error": f"Each tag can be at most {MAX_TAG_LEN} characters."})
         fields["id"] = fields["id"].strip()
         fields["cat"] = fields["cat"].strip().lower()
         fields["prompt"] = fields["prompt"].strip()
-        fields["source"] = fields["source"].strip()
         fields["setup"] = fields["setup"].strip("\n")
         fields["solution"] = fields["solution"].strip("\n")
         for k in ("id", "cat", "prompt", "solution"):
