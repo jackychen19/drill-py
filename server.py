@@ -621,7 +621,10 @@ class Handler(BaseHTTPRequestHandler):
         output, error = run_code(card["setup"], code)
         # Expected output always comes from the server's copy of the card.
         passed = error is None and output.strip() == card["expected"].strip()
-        box = PROGRESS.record_run(deck, card["id"], passed, body.get("firstTry") is True)
+        if body.get("practice") is True:  # a retry for practice: graded, but never scored
+            box = PROGRESS.box(deck, card["id"])
+        else:
+            box = PROGRESS.record_run(deck, card["id"], passed, body.get("firstTry") is True)
         self._json(200, {"output": output, "error": error, "passed": passed, "expected": card["expected"], "box": box})
 
     def _reveal(self, body):

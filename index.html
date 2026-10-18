@@ -513,6 +513,7 @@ dialog.modal::backdrop { background: rgba(5, 7, 10, .65); }
             <span class="tag" id="c-cat"></span>
             <span id="c-num"></span><span class="sep">·</span><span id="c-box"></span>
             <span class="tags" id="c-tags" hidden></span>
+            <span id="c-practice" hidden><span class="sep">·</span> <span class="sess">practice, not scored</span></span>
             <span id="c-sess" hidden></span>
           </div>
           <h1 class="prompt" id="c-prompt"></h1>
@@ -540,7 +541,9 @@ dialog.modal::backdrop { background: rgba(5, 7, 10, .65); }
       <div class="actions" id="actions">
         <button class="btn primary" id="run"><span id="run-label">Run</span><kbd id="run-kbd"></kbd></button>
         <button class="btn" id="reveal">Show solution</button>
+        <button class="btn" id="retry" hidden title="Retype it from memory. Practice runs aren't scored.">Practice again</button>
         <button class="btn quiet" id="skip">Skip</button>
+        <button class="btn quiet" id="back" title="Go back to the previous card in this sitting">← Back</button>
       </div>
 
       <section class="solution" id="solution" hidden aria-live="polite"></section>
@@ -743,6 +746,9 @@ const S = {
   deckName: null,    // active deck; the server remembers it between visits
   decks: [],         // [{name, count}]
   stale: false,      // server.py is older than this page
+  history: [],       // ids of cards visited earlier in this sitting, for Back
+  passedIds: new Set(), // cards passed this sitting: going Back to one is a practice run
+  practice: false,   // this showing is unscored (Back to a passed card, or Practice again)
   deck: { q: "", cat: "all", tag: "all", sel: new Set() },
   flash: null,      // message shown once on the deck page
   form: null,       // card form state while on #deck/new or #deck/edit/<id>
@@ -877,8 +883,13 @@ function weakest(cards) {
     .map(({ c }) => c);
 }
 
-function show(card) {
+function show(card, { back = false, practice = false } = {}) {
+  if (!back && S.current && (!card || S.current.id !== card.id)) {
+    if (S.history[S.history.length - 1] !== S.current.id) S.history.push(S.current.id);
+    if (S.history.length > 50) S.history.shift();
+  }
   S.current = card;
+  S.practice = !!card && practice;
   if (card) S.lastId = card.id;
   S.attempt = 0;
   S.revealed = false;
@@ -921,17 +932,19 @@ async function run() {
   $("#run-label").textContent = "Running…";
   $("#run").disabled = true;
   try {
-    const r = await api("/run", { deck: S.deckName, cardId: card.id, code, firstTry });
+    const practice = S.practice;
+    const r = await api("/run", { deck: S.deckName, cardId: card.id, code, firstTry, practice });
     if (S.current !== card) return;
     S.attempt++;
-    S.result = { ...r, firstTry, revealed: S.revealed };
+    S.result = { ...r, firstTry, revealed: S.revealed, practice };
     S.oops = null;
     setBox(card.id, r.box);
-    if (!r.passed) S.progress[card.id].misses++;
+    if (!r.passed && !practice) S.progress[card.id].misses++;
     if (r.passed) {
       S.passed = true;
+      S.passedIds.add(card.id);
       const st = S.session && S.session.stats;
-      if (st) firstTry ? st.first++ : st.retry++;
+      if (st && !practice) firstTry ? st.first++ : st.retry++;
     }
   } catch (e) {
     S.oops = e.message;
@@ -946,7 +959,7 @@ async function run() {
 async function reveal() {
   if (!S.current || S.solution) return;
   const card = S.current;
-  const reset = !S.passed; // after a pass the card is already scored, so peeking is free
+  const reset = !S.passed && !S.practice; // after a pass, or in practice, peeking is free
   try {
     const r = await api("/api/reveal", { deck: S.deckName, cardId: card.id, reset });
     if (S.current !== card) return;
@@ -970,6 +983,23 @@ function skip() {
 }
 
 function primary() { S.passed ? nextCard() : run(); }
+
+// Back steps through the cards seen earlier in this sitting (kept in memory only).
+// A card passed earlier this sitting reopens as an unscored practice run, so you
+// can't retire a card by retyping it three times in a row.
+function goBack() {
+  let card = null;
+  while (!card && S.history.length) card = byId(S.history.pop());
+  if (!card) return render();
+  const sess = S.session;
+  if (sess && sess.kind === "weakest") {
+    const i = sess.ids.indexOf(card.id);
+    if (i >= 0) sess.i = i; // Next carries on from here
+  }
+  show(card, { back: true, practice: S.passedIds.has(card.id) });
+}
+
+function retry() { if (S.current && S.passed) show(S.current, { practice: true }); }
 
 function endSession() {
   S.session = null;
@@ -1191,11 +1221,14 @@ function renderCard() {
   rv.textContent = S.solution ? "Solution shown" : S.passed ? "See solution" : "Show solution";
   rv.disabled = !!S.solution;
   $("#skip").hidden = S.passed;
+  $("#retry").hidden = !S.passed;
+  $("#back").disabled = !S.history.some((id) => byId(id));
+  $("#c-practice").hidden = !S.practice;
 
   const sol = $("#solution");
   sol.hidden = !S.solution;
   if (S.solution) {
-    const note = S.solution.reset ? `card reset to box 0` : "card already scored";
+    const note = S.solution.reset ? "card reset to box 0" : S.practice ? "practice run, box unchanged" : "card already scored";
     sol.innerHTML = `
       <div class="sol-head"><strong>REFERENCE SOLUTION</strong><span>${note}</span></div>
       <pre class="sol-code">${esc(S.solution.solution)}</pre>
@@ -1240,6 +1273,8 @@ function renderRail() {
 
   let text;
   if (!c) text = "Pick a card to see where it sits.";
+  else if (S.practice && S.passed) text = `Practice run passed. Box stays at ${box}.`;
+  else if (S.practice) text = `Practice run: not scored, and Show solution won't reset anything. Box stays at ${box}.`;
   else if (S.passed && S.result.firstTry) text = box >= RETIRED
     ? "Retired. It won't come back unless you review retired cards or reset."
     : `Up to box ${box}. ${RETIRED - box} more first-try pass${RETIRED - box === 1 ? "" : "es"} and it retires.`;
@@ -1275,7 +1310,7 @@ function renderResult() {
     el.innerHTML = `<div class="result oops"><div class="banner"><span class="verdict">HOLD ON</span><span class="banner-msg">${esc(S.oops)}</span></div></div>`;
   } else if (r) {
     let msg;
-    if (r.passed) msg = r.firstTry ? "First try. Nice." : "Output matches.";
+    if (r.passed) msg = r.practice ? "Output matches. Practice run, so your box didn't change." : r.firstTry ? "First try. Nice." : "Output matches.";
     else if (r.error) msg = `Your code raised ${esc(r.error.split(":")[0])}.`;
     else if (!r.output.trim()) msg = "Your code didn't print anything.";
     else if (r.output.replace(/\s+/g, "") === r.expected.replace(/\s+/g, "")) msg = "Close: only whitespace differs.";
@@ -1401,7 +1436,8 @@ function renderSelbar() {
 }
 
 function resetDrillState() {
-  Object.assign(S, { filter: "all", session: null, done: null, lastId: null, current: null, flash: null });
+  Object.assign(S, { filter: "all", session: null, done: null, lastId: null, current: null, flash: null, practice: false, history: [] });
+  S.passedIds.clear();
   S.deck.cat = "all";
   S.deck.tag = "all";
   S.deck.q = "";
@@ -1710,6 +1746,8 @@ async function deleteForm() {
 $("#run").addEventListener("click", primary);
 $("#reveal").addEventListener("click", reveal);
 $("#skip").addEventListener("click", skip);
+$("#back").addEventListener("click", goBack);
+$("#retry").addEventListener("click", retry);
 $("#drill-weak").addEventListener("click", startWeakest);
 $("#review-retired").addEventListener("click", startRetired);
 $("#reset").addEventListener("click", resetProgress);

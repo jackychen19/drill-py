@@ -20,6 +20,8 @@ The server runs whatever code you type, so it only listens on `127.0.0.1`. It al
   - Pass on the first run: the card moves up one box.
   - Pass after a failed run: the box stays the same.
   - Show solution: the card goes back to box 0. Peeking after you've already passed is free.
+- **Back** (next to Skip) returns to the previous card you saw this sitting, one step at a time, including cards you skipped. The history is kept in memory only, so it starts fresh when you reload the page or switch decks. Going back to a card you skipped (or only looked at) is a normal scored attempt.
+- **Practice runs** aren't scored. Going Back to a card you already passed this sitting, or clicking **Practice again** after a pass, reopens it as practice: the code is still graded, but it can't change the box, the pass or miss counts, and **Show solution** won't reset the card. (Otherwise you could retire a card by retyping it three times in a row.)
 - **Picking**: lower boxes come up more often (odds 6 : 3 : 1 for boxes 0, 1, 2). Within a box it picks at random, never the same card twice in a row. Retired cards stop appearing.
 - **Progress** page: a per-category breakdown, **Drill the weakest 10**, **Review retired**, and **Reset progress**.
 - **Deck** page: every card in the current deck, searchable, with add, edit and delete. See below.
